@@ -1,0 +1,277 @@
+[
+  {
+    "id": "muntinlupa",
+    "name": "Muntinlupa",
+    "city_norm": "MUNTINLUPA",
+    "effective_coverage_score": 0.4682,
+    "raw_coverage_ratio": 0.49,
+    "avg_progress": 95.55,
+    "total_high_hazard_area_km2": 1.1486,
+    "raw_covered_area_km2": 0.5628,
+    "project_count": 68,
+    "status_breakdown": {
+      "Completed": 53,
+      "On-Going": 15
+    },
+    "budget_total_php": 2882504900.64
+  },
+  {
+    "id": "mandaluyong",
+    "name": "Mandaluyong",
+    "city_norm": "MANDALUYONG",
+    "effective_coverage_score": 0.4815,
+    "raw_coverage_ratio": 0.4815,
+    "avg_progress": 100.0,
+    "total_high_hazard_area_km2": 0.5615,
+    "raw_covered_area_km2": 0.2703,
+    "project_count": 14,
+    "status_breakdown": {
+      "Completed": 13,
+      "On-Going": 1
+    },
+    "budget_total_php": 236623815.84
+  },
+  {
+    "id": "valenzuela",
+    "name": "Valenzuela",
+    "city_norm": "VALENZUELA",
+    "effective_coverage_score": 0.6241,
+    "raw_coverage_ratio": 0.6778,
+    "avg_progress": 92.08,
+    "total_high_hazard_area_km2": 3.1247,
+    "raw_covered_area_km2": 2.1178,
+    "project_count": 220,
+    "status_breakdown": {
+      "Completed": 172,
+      "On-Going": 48
+    },
+    "budget_total_php": 10869067794.35
+  },
+  {
+    "id": "makati",
+    "name": "Makati",
+    "city_norm": "MAKATI",
+    "effective_coverage_score": 0.6561,
+    "raw_coverage_ratio": 0.6803,
+    "avg_progress": 96.45,
+    "total_high_hazard_area_km2": 0.8273,
+    "raw_covered_area_km2": 0.5628,
+    "project_count": 200,
+    "status_breakdown": {
+      "Completed": 186,
+      "On-Going": 13,
+      "Not Yet Started": 1
+    },
+    "budget_total_php": 5226535423.39
+  },
+  {
+    "id": "quezon",
+    "name": "Quezon",
+    "city_norm": "QUEZON",
+    "effective_coverage_score": 0.6649,
+    "raw_coverage_ratio": 0.7283,
+    "avg_progress": 91.29,
+    "total_high_hazard_area_km2": 15.6002,
+    "raw_covered_area_km2": 11.3622,
+    "project_count": 550,
+    "status_breakdown": {
+      "Completed": 458,
+      "On-Going": 87,
+      "Not Yet Started": 5
+    },
+    "budget_total_php": 20305404708.67
+  },
+  {
+    "id": "taguig",
+    "name": "Taguig",
+    "city_norm": "TAGUIG",
+    "effective_coverage_score": 0.7964,
+    "raw_coverage_ratio": 0.8172,
+    "avg_progress": 97.45,
+    "total_high_hazard_area_km2": 0.927,
+    "raw_covered_area_km2": 0.7576,
+    "project_count": 240,
+    "status_breakdown": {
+      "Completed": 217,
+      "On-Going": 23
+    },
+    "budget_total_php": 12308723605.84
+  },
+  {
+    "id": "caloocan",
+    "name": "Caloocan",
+    "city_norm": "CALOOCAN",
+    "effective_coverage_score": 0.8065,
+    "raw_coverage_ratio": 0.8528,
+    "avg_progress": 94.57,
+    "total_high_hazard_area_km2": 2.1396,
+    "raw_covered_area_km2": 1.8246,
+    "project_count": 222,
+    "status_breakdown": {
+      "Completed": 199,
+      "On-Going": 23
+    },
+    "budget_total_php": 8159422772.92
+  },
+  {
+    "id": "pasay",
+    "name": "Pasay",
+    "city_norm": "PASAY",
+    "effective_coverage_score": 0.8226,
+    "raw_coverage_ratio": 0.8569,
+    "avg_progress": 96.0,
+    "total_high_hazard_area_km2": 0.582,
+    "raw_covered_area_km2": 0.4987,
+    "project_count": 69,
+    "status_breakdown": {
+      "Completed": 61,
+      "On-Going": 8
+    },
+    "budget_total_php": 3537372198.77
+  },
+  {
+    "id": "las_pinas",
+    "name": "Las Pinas",
+    "city_norm": "LAS PINAS",
+    "effective_coverage_score": 0.8577,
+    "raw_coverage_ratio": 0.9031,
+    "avg_progress": 94.98,
+    "total_high_hazard_area_km2": 1.3834,
+    "raw_covered_area_km2": 1.2494,
+    "project_count": 121,
+    "status_breakdown": {
+      "Completed": 102,
+      "On-Going": 19
+    },
+    "budget_total_php": 5798266277.87
+  },
+  {
+    "id": "pasig",
+    "name": "Pasig",
+    "city_norm": "PASIG",
+    "effective_coverage_score": 0.8738,
+    "raw_coverage_ratio": 0.9062,
+    "avg_progress": 96.42,
+    "total_high_hazard_area_km2": 4.2707,
+    "raw_covered_area_km2": 3.87,
+    "project_count": 198,
+    "status_breakdown": {
+      "Completed": 170,
+      "On-Going": 28
+    },
+    "budget_total_php": 5097305847.63
+  },
+  {
+    "id": "paranaque",
+    "name": "Paranaque",
+    "city_norm": "PARANAQUE",
+    "effective_coverage_score": 0.888,
+    "raw_coverage_ratio": 0.9639,
+    "avg_progress": 92.12,
+    "total_high_hazard_area_km2": 2.7112,
+    "raw_covered_area_km2": 2.6135,
+    "project_count": 270,
+    "status_breakdown": {
+      "Completed": 229,
+      "On-Going": 40,
+      "Not Yet Started": 1
+    },
+    "budget_total_php": 9695301071.02
+  },
+  {
+    "id": "manila",
+    "name": "Manila",
+    "city_norm": "MANILA",
+    "effective_coverage_score": 0.9184,
+    "raw_coverage_ratio": 0.9879,
+    "avg_progress": 92.97,
+    "total_high_hazard_area_km2": 2.8332,
+    "raw_covered_area_km2": 2.7989,
+    "project_count": 672,
+    "status_breakdown": {
+      "Completed": 576,
+      "On-Going": 95,
+      "Not Yet Started": 1
+    },
+    "budget_total_php": 40320772029.93
+  },
+  {
+    "id": "navotas",
+    "name": "Navotas",
+    "city_norm": "NAVOTAS",
+    "effective_coverage_score": 0.9211,
+    "raw_coverage_ratio": 1.0,
+    "avg_progress": 92.11,
+    "total_high_hazard_area_km2": 0.1053,
+    "raw_covered_area_km2": 0.1053,
+    "project_count": 177,
+    "status_breakdown": {
+      "Completed": 146,
+      "On-Going": 31
+    },
+    "budget_total_php": 6187390624.63
+  },
+  {
+    "id": "malabon",
+    "name": "Malabon",
+    "city_norm": "MALABON",
+    "effective_coverage_score": 0.9474,
+    "raw_coverage_ratio": 0.9837,
+    "avg_progress": 96.31,
+    "total_high_hazard_area_km2": 1.9972,
+    "raw_covered_area_km2": 1.9647,
+    "project_count": 157,
+    "status_breakdown": {
+      "Completed": 140,
+      "On-Going": 17
+    },
+    "budget_total_php": 7548450065.29
+  },
+  {
+    "id": "marikina",
+    "name": "Marikina",
+    "city_norm": "MARIKINA",
+    "effective_coverage_score": 0.9545,
+    "raw_coverage_ratio": 0.9683,
+    "avg_progress": 98.58,
+    "total_high_hazard_area_km2": 7.9391,
+    "raw_covered_area_km2": 7.6874,
+    "project_count": 157,
+    "status_breakdown": {
+      "Completed": 149,
+      "On-Going": 8
+    },
+    "budget_total_php": 5623483217.14
+  },
+  {
+    "id": "san_juan",
+    "name": "San Juan",
+    "city_norm": "SAN JUAN",
+    "effective_coverage_score": 0.9906,
+    "raw_coverage_ratio": 0.9906,
+    "avg_progress": 100.0,
+    "total_high_hazard_area_km2": 0.6206,
+    "raw_covered_area_km2": 0.6148,
+    "project_count": 36,
+    "status_breakdown": {
+      "Completed": 36
+    },
+    "budget_total_php": 1198405498.9
+  },
+  {
+    "id": "pateros",
+    "name": "Pateros",
+    "city_norm": "PATEROS",
+    "effective_coverage_score": 0.9997,
+    "raw_coverage_ratio": 1.0,
+    "avg_progress": 99.97,
+    "total_high_hazard_area_km2": 0.0113,
+    "raw_covered_area_km2": 0.0113,
+    "project_count": 60,
+    "status_breakdown": {
+      "Completed": 56,
+      "On-Going": 4
+    },
+    "budget_total_php": 1770024534.32
+  }
+]

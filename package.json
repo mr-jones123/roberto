@@ -1,0 +1,12 @@
+{
+  "name": "roberto",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install && npm --prefix server run build",
+    "start": "node server/dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

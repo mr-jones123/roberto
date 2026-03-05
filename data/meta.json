@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-03-05T17:39:11.415757+00:00",
+  "buffer_radius_m": 500,
+  "crs_computation": "EPSG:32651",
+  "crs_storage": "EPSG:4326",
+  "total_projects": 3431,
+  "total_cities": 17,
+  "data_sources": {
+    "dpwh": "BetterGov.ph DPWH Transparency Dataset (CC0)",
+    "hazard": "NOAH Metro Manila 25yr Flood Hazard (ODbL 1.0)",
+    "boundaries": "OCHA Philippines Admin Boundaries + faeldon GeoJSON"
+  },
+  "scoring_formula": "EffectiveCoverage = (raw_covered_area / total_high_hazard_area) * (avg_progress / 100)"
+}
