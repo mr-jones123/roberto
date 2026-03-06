@@ -1,4 +1,4 @@
-.PHONY: install dev build start clean typecheck pipeline validate
+.PHONY: install dev build start clean typecheck pipeline validate smoke
 
 # ── Install ──────────────────────────────────────────────
 install:
@@ -33,6 +33,10 @@ pipeline:
 
 validate:
 	cd pipeline && python validate.py
+
+# ── Smoke test ───────────────────────────────────────────
+smoke: ## Run incident command smoke suite
+	./scripts/smoke-test.sh
 
 # ── Cleanup ──────────────────────────────────────────────
 clean:

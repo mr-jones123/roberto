@@ -1,0 +1,44 @@
+
+[1m[0;36m=== Incident Command Smoke Test ===[0m
+
+[1;33mCleaning database...[0m
+[1;33mStarting server...[0m
+[1;33mWaiting for server health...[0m.. [0;32mready[0m (3s)
+
+[1m--- Auth ---[0m
+[0;32m  PASS[0m [01] Login reporter1 (expected=reporter1, got=reporter1)
+[0;32m  PASS[0m [02] Login coord1 (expected=coord1, got=coord1)
+[0;32m  PASS[0m [03] Login resp1 (expected=resp1, got=resp1)
+
+[1m--- Lifecycle ---[0m
+[0;32m  PASS[0m [04] Create incident (status=PING) (expected=PING, got=PING)
+[0;32m  PASS[0m [05] Verify incident (status=VERIFIED) (expected=VERIFIED, got=VERIFIED)
+[0;32m  PASS[0m [06] Prioritize incident (priority=85) (expected=PRIORITIZED, got=PRIORITIZED)
+[0;32m  PASS[0m [07] Assign incident to resp1 (status=ASSIGNED) (expected=ASSIGNED, got=ASSIGNED)
+[0;32m  PASS[0m [08] Resolve incident (status=RESOLVED) (expected=RESOLVED, got=RESOLVED)
+
+[1m--- Role Rejection ---[0m
+[0;32m  PASS[0m [09] Reporter verify → 403 forbidden (expected=403, got=403)
+
+[1m--- Version Conflict ---[0m
+[0;32m  PASS[0m [10] Stale version → 409 conflict (expected=409, got=409)
+
+[1m--- Invalid Transition ---[0m
+[0;32m  PASS[0m [11] PING → ASSIGNED (invalid) → 422 (expected=422, got=422)
+
+[1m--- Evac Centers ---[0m
+[0;32m  PASS[0m [12] Nearest evac centers returned (value=3)
+[0;32m  PASS[0m [13] Evac centers have distance_km (expected=yes, got=yes)
+
+[1m--- KPI ---[0m
+[0;32m  PASS[0m [14] KPI total_incidents is non-null (value=3)
+[0;32m  PASS[0m [15] KPI resolution_rate is non-null (value=33.33)
+
+[1m--- SSE ---[0m
+[0;32m  PASS[0m [16] SSE received incident_created event (contains 'incident_created')
+[0;32m  PASS[0m [17] SSE contains incident data (contains 'SSE Test Incident')
+
+[1m[0;36m=== Summary ===[0m
+[1m  17/17 checks passed[0m
+[0;32m  All checks passed![0m
+
