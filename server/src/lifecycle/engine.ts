@@ -14,6 +14,8 @@ export type TransitionResult =
   | { ok: true; incident: IncidentRow }
   | { ok: false; code: 422 | 409; message: string };
 
+class VersionConflictError extends Error {}
+
 export class LifecycleEngine {
   private readonly store: IncidentStore;
 
@@ -56,6 +58,7 @@ export class LifecycleEngine {
     }
 
     const db = (this.store as unknown as InternalStore).db;
+    const serializedPayload = payload ? JSON.stringify(payload) : undefined;
 
     const updateStmt = db.prepare(`
       UPDATE incidents
@@ -66,8 +69,6 @@ export class LifecycleEngine {
         AND version = @version
     `);
 
-    let versionConflictDuringCommit = false;
-
     const executeTransition = db.transaction(() => {
       const updateResult = updateStmt.run({
         id: incidentId,
@@ -76,8 +77,7 @@ export class LifecycleEngine {
       });
 
       if (updateResult.changes !== 1) {
-        versionConflictDuringCommit = true;
-        return undefined;
+        throw new VersionConflictError(`Version mismatch for incident ${incidentId}.`);
       }
 
       this.store.appendEvent({
@@ -87,27 +87,35 @@ export class LifecycleEngine {
         action: "transition",
         old_status: incident.status,
         new_status: toStatus,
-        payload: payload ? JSON.stringify(payload) : undefined,
+        payload: serializedPayload,
       });
 
-      return this.store.getIncident(incidentId);
+      const updatedIncident = this.store.getIncident(incidentId);
+      if (!updatedIncident) {
+        throw new Error(`Incident ${incidentId} disappeared after transition.`);
+      }
+
+      return updatedIncident;
     });
 
-    const updatedIncident = executeTransition();
+    let updatedIncident: IncidentRow;
+    try {
+      updatedIncident = executeTransition();
+    } catch (error: unknown) {
+      if (error instanceof VersionConflictError) {
+        return {
+          ok: false,
+          code: 409,
+          message: error.message,
+        };
+      }
 
-    if (versionConflictDuringCommit) {
-      return {
-        ok: false,
-        code: 409,
-        message: `Version mismatch for incident ${incidentId}.`,
-      };
-    }
+      const failureMessage = error instanceof Error ? error.message : "unknown error";
 
-    if (!updatedIncident) {
       return {
         ok: false,
         code: 422,
-        message: `Failed to transition incident ${incidentId}.`,
+        message: `Failed to transition incident ${incidentId}: ${failureMessage}`,
       };
     }
 
