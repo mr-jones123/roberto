@@ -1,4 +1,4 @@
-.PHONY: install dev build start clean typecheck pipeline validate smoke
+.PHONY: install dev build start clean typecheck pipeline validate smoke demo
 
 # ── Install ──────────────────────────────────────────────
 install:
@@ -37,6 +37,9 @@ validate:
 # ── Smoke test ───────────────────────────────────────────
 smoke: ## Run incident command smoke suite
 	./scripts/smoke-test.sh
+
+demo: ## Run deterministic hackathon demo
+	./scripts/demo-seed.sh
 
 # ── Cleanup ──────────────────────────────────────────────
 clean:

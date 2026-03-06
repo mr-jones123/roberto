@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "title": "Waist-high flooding on Dagupan Street, Tondo",
+    "description": "Waist-high floodwater along Dagupan Street near Barangay 105. Storm drains overflowing. Multiple families requesting rescue from second-floor windows. Water rising steadily since 0600H.",
+    "latitude": 14.6042,
+    "longitude": 120.9667,
+    "priority": 90,
+    "lifecycle": "full",
+    "resolve_note": "DSWD rescue boats deployed. 23 families evacuated to Tondo Covered Court. Floodwater receded by 1400H."
+  },
+  {
+    "id": 2,
+    "title": "Road impassable at JP Rizal Ave, Marikina",
+    "description": "Marikina River breached 18m alarm level. JP Rizal Avenue completely submerged from Barangay Sto. Nino to Industrial Valley. Vehicles stranded. MDRRMO requesting immediate road closure.",
+    "latitude": 14.6507,
+    "longitude": 121.1029,
+    "priority": 95,
+    "lifecycle": "full",
+    "resolve_note": "River level dropped below 16m. Road cleared by heavy equipment. Traffic rerouted via Marcos Highway until debris removal complete."
+  },
+  {
+    "id": 3,
+    "title": "Knee-deep flooding at Commonwealth Ave underpass, QC",
+    "description": "Underpass near Tandang Sora intersection flooded knee-deep. Pumping station at Lagro reportedly malfunctioning. Stalled jeepneys blocking both lanes. Commuters wading through floodwater.",
+    "latitude": 14.6760,
+    "longitude": 121.1050,
+    "priority": 75,
+    "lifecycle": "full",
+    "resolve_note": "Pumping station repaired and operational. Underpass drained within 3 hours. Stalled vehicles towed. Normal traffic flow restored."
+  },
+  {
+    "id": 4,
+    "title": "Flash flood near Rosario Bridge, Pasig City",
+    "description": "Sudden flash flood reported at Rosario Bridge area, Barangay Rosario. Pasig River water spilling onto C. Raymundo Avenue. Market vendors scrambling to save goods. Water at ankle level and rising.",
+    "latitude": 14.5764,
+    "longitude": 121.0851,
+    "priority": 80,
+    "lifecycle": "verified",
+    "resolve_note": null
+  },
+  {
+    "id": 5,
+    "title": "Rising water level in Barangay Catmon, Malabon",
+    "description": "Residents of Barangay Catmon report water seeping into ground-floor homes. Tullahan River showing brownish discoloration. No visible overflow yet but level unusually high for current rainfall amount.",
+    "latitude": 14.6625,
+    "longitude": 120.9597,
+    "priority": null,
+    "lifecycle": "ping",
+    "resolve_note": null
+  }
+]

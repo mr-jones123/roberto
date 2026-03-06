@@ -1,0 +1,80 @@
+
+[1m[0;36m╔═══════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║   ROBERTO — Incident Command Demo (Metro Manila Flood)   ║[0m
+[1m[0;36m╚═══════════════════════════════════════════════════════════╝[0m
+
+[1m[0;36m[01][0m Cleaning database... [0;32m✓[0m
+[1m[0;36m[02][0m Starting server... [0;32m✓[0m
+
+[1m── Phase 1: Authentication ─────────────────────────────[0m
+
+[1m[0;36m[03][0m Logging in reporter1 (field reporter)... [0;32m✓[0m
+[1m[0;36m[04][0m Logging in coord1 (incident coordinator)... [0;32m✓[0m
+[1m[0;36m[05][0m Logging in resp1 (field responder)... [0;32m✓[0m
+
+[1m── Phase 2: Reporting Incidents (5 flood reports) ─────[0m
+
+[1m[0;36m[06][0m Creating: Waist-high flooding on Dagupan Street, Tondo... [0;32m✓[0m
+[2m     ID: a66c3c9f...  Status: PING  Location: (14.6042, 120.9667)[0m
+[1m[0;36m[07][0m Creating: Road impassable at JP Rizal Ave, Marikina... [0;32m✓[0m
+[2m     ID: 2ab8e189...  Status: PING  Location: (14.6507, 121.1029)[0m
+[1m[0;36m[08][0m Creating: Knee-deep flooding at Commonwealth Ave underpass, QC... [0;32m✓[0m
+[2m     ID: c9bd5a78...  Status: PING  Location: (14.676, 121.105)[0m
+[1m[0;36m[09][0m Creating: Flash flood near Rosario Bridge, Pasig City... [0;32m✓[0m
+[2m     ID: c2a28c95...  Status: PING  Location: (14.5764, 121.0851)[0m
+[1m[0;36m[10][0m Creating: Rising water level in Barangay Catmon, Malabon... [0;32m✓[0m
+[2m     ID: 5d6bae62...  Status: PING  Location: (14.6625, 120.9597)[0m
+
+[1m── Phase 3: Incident Lifecycle ─────────────────────────[0m
+
+[1;33m  ▸ Incident #1: Waist-high flooding on Dagupan Street, Tondo[0m
+[1m[0;36m[11][0m   Verifying (coordinator confirms report)... [0;32m✓[0m
+[1m[0;36m[12][0m   Prioritizing (severity score: 90)... [0;32m✓[0m
+[1m[0;36m[13][0m   Assigning to resp1 (dispatching responder)... [0;32m✓[0m
+[1m[0;36m[14][0m   Resolving (responder on-site confirms)... [0;32m✓[0m
+
+[1;33m  ▸ Incident #2: Road impassable at JP Rizal Ave, Marikina[0m
+[1m[0;36m[15][0m   Verifying (coordinator confirms report)... [0;32m✓[0m
+[1m[0;36m[16][0m   Prioritizing (severity score: 95)... [0;32m✓[0m
+[1m[0;36m[17][0m   Assigning to resp1 (dispatching responder)... [0;32m✓[0m
+[1m[0;36m[18][0m   Resolving (responder on-site confirms)... [0;32m✓[0m
+
+[1;33m  ▸ Incident #3: Knee-deep flooding at Commonwealth Ave underpass, QC[0m
+[1m[0;36m[19][0m   Verifying (coordinator confirms report)... [0;32m✓[0m
+[1m[0;36m[20][0m   Prioritizing (severity score: 75)... [0;32m✓[0m
+[1m[0;36m[21][0m   Assigning to resp1 (dispatching responder)... [0;32m✓[0m
+[1m[0;36m[22][0m   Resolving (responder on-site confirms)... [0;32m✓[0m
+
+[1m── Phase 4: Partial Lifecycle (in-progress incidents) ──[0m
+
+[1;33m  ▸ Incident #4: Flash flood near Rosario Bridge, Pasig City[0m
+[1m[0;36m[23][0m   Verifying (coordinator confirms, awaiting triage)... [0;32m✓[0m
+[2m     ⏸  Left at VERIFIED — awaiting prioritization[0m
+
+[1;33m  ▸ Incident #5: Rising water level in Barangay Catmon, Malabon[0m
+[1m[0;36m[24][0m   No action taken (unverified community report)... [0;32m✓[0m
+[2m     ⏸  Left at PING — awaiting coordinator verification[0m
+
+[1m── Phase 5: KPI Summary ────────────────────────────────[0m
+
+[1m[0;36m[25][0m Querying KPI endpoint... [0;32m✓[0m
+
+[1m[0;36m┌─────────────────────────────────────────────────┐[0m
+[1m[0;36m│             📊 Response Metrics                 │[0m
+[1m[0;36m├─────────────────────────────────────────────────┤[0m
+[0;36m│[0m  Total Incidents:       [1m5                       [0m[0;36m│[0m
+[0;36m│[0m  Resolution Rate:       [1m60%                     [0m[0;36m│[0m
+[0;36m│[0m  Avg Acknowledge Time:  [1m8251ms                  [0m[0;36m│[0m
+[0;36m│[0m  Avg Assignment Latency:[1m 2125ms                 [0m[0;36m│[0m
+[0;36m│[0m  Avg Resolution Time:   [1m9923ms                  [0m[0;36m│[0m
+[0;36m│[0m                                                 [0;36m│[0m
+[0;36m│[0m  By Status:  PING=1  VERIFIED=1  RESOLVED=3     [0;36m│[0m
+[1m[0;36m└─────────────────────────────────────────────────┘[0m
+
+[1m[0;32m╔═══════════════════════════════════════════════════════════╗[0m
+[1m[0;32m║              Demo completed successfully!                 ║[0m
+[1m[0;32m║  5 incidents seeded · 3 resolved · 1 verified · 1 ping   ║[0m
+[1m[0;32m╚═══════════════════════════════════════════════════════════╝[0m
+
+
+[2mStopping server (PID 37783)...[0m
