@@ -6,6 +6,7 @@ import { Methodology } from "./components/Methodology"
 import { CoordinatorPanel } from "./components/incident/CoordinatorPanel"
 import { LoginForm } from "./components/incident/LoginForm"
 import { ReporterPanel } from "./components/incident/ReporterPanel"
+import { ResponderPanel } from "./components/incident/ResponderPanel"
 import { useCities } from "./hooks/useCities"
 import { useCity } from "./hooks/useCity"
 import { useAuth } from "./hooks/useAuth"
@@ -78,15 +79,10 @@ function App(): JSX.Element {
     }
 
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-[#1e293b] px-6 text-center">
-        <p className="text-sm text-slate-400">Responder panel coming soon</p>
-        <button
-          onClick={auth.logout}
-          className="mt-3 text-xs text-slate-500 hover:text-slate-300"
-        >
-          Sign out
-        </button>
-      </div>
+      <ResponderPanel
+        token={auth.token!}
+        onLogout={auth.logout}
+      />
     )
   }
 
