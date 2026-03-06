@@ -10,23 +10,23 @@ export const createAnalysisRouter = (dataStore: DataStore): Router => {
     const apiKey = req.headers["x-gemini-key"];
 
     if (typeof apiKey !== "string" || apiKey.trim() === "") {
-      res.status(400).json({ error: "Gemini API key required. Enter your key in the UI." });
+      res.status(400).json({ analysis: null, error: "Gemini API key required. Enter your key in the UI." });
       return;
     }
 
     const city = dataStore.getCityById(req.params.cityId);
 
     if (city === undefined) {
-      res.status(404).json({ error: "City not found" });
+      res.status(404).json({ analysis: null, error: "City not found" });
       return;
     }
 
     const projects = dataStore.getProjectsForCity(city);
-    const analysis = await generateCityAnalysis(city, projects, apiKey);
+    const result = await generateCityAnalysis(city, projects, apiKey);
 
     res.json({
-      analysis,
-      error: analysis === null ? "AI analysis failed — check your API key" : undefined
+      analysis: result.text,
+      error: result.error ?? undefined
     });
   });
 
