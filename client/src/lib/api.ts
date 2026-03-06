@@ -1,4 +1,4 @@
-import type { AnalysisResponse, City, CityDetail, EvacCenter, IncidentRow, LoginResponse, Meta, Project } from "./types"
+import type { AnalysisResponse, City, CityDetail, EvacCenter, EvacCenterRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, Meta, Project } from "./types"
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -94,6 +94,10 @@ export function fetchIncidentDetail(
   return authFetch(`/api/incidents/${id}`, token)
 }
 
+export function fetchEvacCenters(): Promise<{ centers: EvacCenterRow[] }> {
+  return fetchJson("/api/evac-centers")
+}
+
 export function fetchNearestEvacCenters(
   lat: number,
   lng: number,
@@ -158,4 +162,17 @@ export function rejectIncident(
     method: "PATCH",
     body: JSON.stringify({ reason, version }),
   })
+}
+
+export function fetchKpi(token: string): Promise<KpiResponse> {
+  return authFetch("/api/kpi", token)
+}
+
+export function fetchIncidentEvents(
+  token: string,
+  incidentId: string,
+): Promise<{ events: IncidentEventRow[] }> {
+  return authFetch(`/api/incidents/${incidentId}`, token).then(
+    (res) => ({ events: (res as { events: IncidentEventRow[] }).events })
+  )
 }

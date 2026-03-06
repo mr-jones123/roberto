@@ -84,3 +84,35 @@ export type EvacCenter = {
   longitude: number
   distance_km: number
 }
+
+export type EvacCenterRow = {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  capacity: number | null
+  current_load: number
+  status: "open" | "full" | "closed"
+  created_at: string
+  updated_at: string
+}
+
+export type KpiResponse = {
+  total_incidents: number
+  by_status: Record<string, number>
+  avg_acknowledge_time_ms: number | null
+  avg_assignment_latency_ms: number | null
+  resolution_rate: number
+  avg_resolution_time_ms: number | null
+}
+
+export type IncidentEventRow = {
+  id: string
+  incident_id: string
+  actor_id: string
+  action: string
+  old_status: string | null
+  new_status: string | null
+  payload: string | null
+  created_at: string
+}

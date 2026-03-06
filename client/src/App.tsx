@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react"
+import { useEffect, useState, type JSX } from "react"
 import { ChoroplethMap } from "./components/ChoroplethMap"
 import { CityDetail } from "./components/CityDetail"
 import { CityRanking } from "./components/CityRanking"
@@ -10,6 +10,9 @@ import { ResponderPanel } from "./components/incident/ResponderPanel"
 import { useCities } from "./hooks/useCities"
 import { useCity } from "./hooks/useCity"
 import { useAuth } from "./hooks/useAuth"
+import { useIncidentStream } from "./hooks/useIncidentStream"
+import { fetchEvacCenters } from "./lib/api"
+import type { EvacCenterRow } from "./lib/types"
 
 function App(): JSX.Element {
   const { cities, boundaries, hazardZones, allProjects, loading, error } = useCities()
@@ -17,9 +20,19 @@ function App(): JSX.Element {
   const [showMethodology, setShowMethodology] = useState(false)
   const [showHazard, setShowHazard] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
+  const [showIncidents, setShowIncidents] = useState(false)
+  const [showEvacCenters, setShowEvacCenters] = useState(false)
   const [incidentMode, setIncidentMode] = useState(false)
   const { detail, loading: detailLoading } = useCity(selectedCityId)
   const auth = useAuth()
+  const { incidents } = useIncidentStream()
+  const [evacCenters, setEvacCenters] = useState<EvacCenterRow[]>([])
+
+  useEffect(() => {
+    fetchEvacCenters()
+      .then((res) => setEvacCenters(res.centers))
+      .catch(() => {})
+  }, [])
 
   if (loading) {
     return (
@@ -105,6 +118,8 @@ function App(): JSX.Element {
             <>
               <LayerToggle label="Hazard" active={showHazard} onToggle={() => setShowHazard((v) => !v)} color="#3b82f6" />
               <LayerToggle label="Projects" active={showProjects} onToggle={() => setShowProjects((v) => !v)} color="#22c55e" />
+              <LayerToggle label="Incidents" active={showIncidents} onToggle={() => setShowIncidents((v) => !v)} color="#ef4444" data-testid="toggle-incidents" />
+              <LayerToggle label="Evac Centers" active={showEvacCenters} onToggle={() => setShowEvacCenters((v) => !v)} color="#10b981" data-testid="toggle-evac-centers" />
             </>
           )}
           <button
@@ -144,6 +159,10 @@ function App(): JSX.Element {
             onSelectCity={setSelectedCityId}
             showHazard={showHazard}
             showProjects={showProjects}
+            incidents={incidents}
+            showIncidents={showIncidents}
+            evacCenters={evacCenters}
+            showEvacCenters={showEvacCenters}
           />
         </main>
 
@@ -167,15 +186,17 @@ function App(): JSX.Element {
   )
 }
 
-function LayerToggle({ label, active, onToggle, color }: {
+function LayerToggle({ label, active, onToggle, color, "data-testid": testId }: {
   label: string
   active: boolean
   onToggle: () => void
   color: string
+  "data-testid"?: string
 }) {
   return (
     <button
       onClick={onToggle}
+      data-testid={testId}
       className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
         active
           ? "border-transparent bg-white/10 text-slate-200"

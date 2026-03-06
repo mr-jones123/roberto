@@ -7,7 +7,8 @@ import "react-leaflet-cluster/dist/assets/MarkerCluster.css"
 import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css"
 import type { GeoJSON as GeoJSONLayer } from "leaflet"
 import { formatPHP, scoreColor } from "../lib/colors"
-import type { City, Project } from "../lib/types"
+import type { City, EvacCenterRow, IncidentRow, Project } from "../lib/types"
+import { IncidentMapLayers } from "./IncidentMapLayers"
 
 type FeatureLayer = L.Path & { feature: GeoJSON.Feature }
 
@@ -60,6 +61,10 @@ type Props = {
   onSelectCity: (id: string) => void
   showHazard: boolean
   showProjects: boolean
+  incidents?: IncidentRow[]
+  showIncidents?: boolean
+  evacCenters?: EvacCenterRow[]
+  showEvacCenters?: boolean
 }
 
 function getCityScore(cities: City[], cityNorm: string): number {
@@ -89,6 +94,8 @@ function createClusterIcon(cluster: { getChildCount: () => number }): L.DivIcon 
 export function ChoroplethMap({
   boundaries, hazardZones, allProjects, cities,
   selectedCityId, onSelectCity, showHazard, showProjects,
+  incidents = [], showIncidents = false,
+  evacCenters = [], showEvacCenters = false,
 }: Props): React.JSX.Element | null {
   const geoJsonRef = useRef<GeoJSONLayer | null>(null)
 
@@ -207,6 +214,13 @@ export function ChoroplethMap({
           </MarkerClusterGroup>
         </Pane>
       )}
+
+      <IncidentMapLayers
+        incidents={incidents}
+        showIncidents={showIncidents}
+        evacCenters={evacCenters}
+        showEvacCenters={showEvacCenters}
+      />
     </MapContainer>
   )
 }
