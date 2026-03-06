@@ -211,6 +211,14 @@ export class IncidentStore {
     return stmt.get(id) as UserRow | undefined;
   }
 
+  getDb(): DatabaseType {
+    return this.db;
+  }
+
+  transaction<T>(fn: () => T): T {
+    return this.db.transaction(fn)();
+  }
+
   close(): void {
     this.db.close();
   }

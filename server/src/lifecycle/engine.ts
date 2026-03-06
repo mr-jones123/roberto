@@ -1,14 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import type { Database as DatabaseType } from "better-sqlite3";
-
 import type { IncidentStatus } from "../contracts/incident-command.js";
 import { IncidentStore, type IncidentRow } from "../db/incident-store.js";
 import { TRANSITION_GUARD } from "./transitions.js";
-
-type InternalStore = {
-  db: DatabaseType;
-};
 
 export type TransitionResult =
   | { ok: true; incident: IncidentRow }
@@ -57,50 +51,47 @@ export class LifecycleEngine {
       };
     }
 
-    const db = (this.store as unknown as InternalStore).db;
     const serializedPayload = payload ? JSON.stringify(payload) : undefined;
-
-    const updateStmt = db.prepare(`
-      UPDATE incidents
-      SET status = @status,
-          version = version + 1,
-          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-      WHERE id = @id
-        AND version = @version
-    `);
-
-    const executeTransition = db.transaction(() => {
-      const updateResult = updateStmt.run({
-        id: incidentId,
-        status: toStatus,
-        version: expectedVersion,
-      });
-
-      if (updateResult.changes !== 1) {
-        throw new VersionConflictError(`Version mismatch for incident ${incidentId}.`);
-      }
-
-      this.store.appendEvent({
-        id: randomUUID(),
-        incident_id: incidentId,
-        actor_id: actorId,
-        action: "transition",
-        old_status: incident.status,
-        new_status: toStatus,
-        payload: serializedPayload,
-      });
-
-      const updatedIncident = this.store.getIncident(incidentId);
-      if (!updatedIncident) {
-        throw new Error(`Incident ${incidentId} disappeared after transition.`);
-      }
-
-      return updatedIncident;
-    });
 
     let updatedIncident: IncidentRow;
     try {
-      updatedIncident = executeTransition();
+      updatedIncident = this.store.transaction(() => {
+        const updateStmt = this.store.getDb().prepare(`
+          UPDATE incidents
+          SET status = @status,
+              version = version + 1,
+              updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          WHERE id = @id
+            AND version = @version
+        `);
+
+        const updateResult = updateStmt.run({
+          id: incidentId,
+          status: toStatus,
+          version: expectedVersion,
+        });
+
+        if (updateResult.changes !== 1) {
+          throw new VersionConflictError(`Version mismatch for incident ${incidentId}.`);
+        }
+
+        this.store.appendEvent({
+          id: randomUUID(),
+          incident_id: incidentId,
+          actor_id: actorId,
+          action: "transition",
+          old_status: incident.status,
+          new_status: toStatus,
+          payload: serializedPayload,
+        });
+
+        const updatedIncident = this.store.getIncident(incidentId);
+        if (!updatedIncident) {
+          throw new Error(`Incident ${incidentId} disappeared after transition.`);
+        }
+
+        return updatedIncident;
+      });
     } catch (error: unknown) {
       if (error instanceof VersionConflictError) {
         return {
