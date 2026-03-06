@@ -6,6 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createDataStore, loadDataBundle } from "./data-store.js";
+import { migrate } from "./db/migrate.js";
+import { seedUsers } from "./db/seed-users.js";
 import { createAnalysisRouter } from "./routes/analysis.js";
 import { createBoundariesRouter } from "./routes/boundaries.js";
 import { createCitiesRouter } from "./routes/cities.js";
@@ -36,6 +38,9 @@ const parsePort = (value: string | undefined): number => {
 };
 
 const startServer = async (): Promise<void> => {
+  migrate();
+  seedUsers();
+
   const dataBundle = await loadDataBundle(resolveDataDirectory());
   const dataStore = createDataStore(dataBundle);
 
