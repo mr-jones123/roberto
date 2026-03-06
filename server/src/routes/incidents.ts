@@ -125,7 +125,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
         return;
       }
 
-      store.getDb().prepare("UPDATE incidents SET priority = ? WHERE id = ?").run(priority, id);
+      store.updatePriority(id, priority);
       const updated = store.getIncident(id)!;
 
       res.json({ incident: updated });

@@ -211,6 +211,11 @@ export class IncidentStore {
     return stmt.get(id) as UserRow | undefined;
   }
 
+  updatePriority(incidentId: string, priority: number): void {
+    const stmt = this.db.prepare("UPDATE incidents SET priority = ? WHERE id = ?");
+    stmt.run(priority, incidentId);
+  }
+
   getDb(): DatabaseType {
     return this.db;
   }
