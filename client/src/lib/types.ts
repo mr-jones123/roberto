@@ -65,3 +65,22 @@ export type SSEEvent = {
   type: "incident_created" | "incident_updated"
   incident: IncidentRow
 }
+
+export type AuthUser = {
+  id: string
+  role: "reporter" | "coordinator" | "responder"
+  username: string
+}
+
+export type LoginResponse = {
+  token: string
+  user: AuthUser
+}
+
+export type EvacCenter = {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  distance_km: number
+}
