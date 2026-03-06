@@ -2,6 +2,8 @@ import { compareSync } from "bcryptjs";
 import { Router } from "express";
 
 import { signToken } from "../auth/jwt.js";
+import { requireAuth, requireRole } from "../auth/middleware.js";
+import { INCIDENT_ROLE } from "../contracts/incident-command.js";
 import type { IncidentStore } from "../db/incident-store.js";
 
 export const createAuthRouter = (store: IncidentStore): Router => {
@@ -44,6 +46,19 @@ export const createAuthRouter = (store: IncidentStore): Router => {
       },
     });
   });
+
+  router.get("/me", requireAuth, (req, res) => {
+    res.json({ user: req.user });
+  });
+
+  router.get(
+    "/check-coordinator",
+    requireAuth,
+    requireRole(INCIDENT_ROLE.COORDINATOR),
+    (req, res) => {
+      res.json({ ok: true, user: req.user });
+    },
+  );
 
   return router;
 };
