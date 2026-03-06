@@ -18,6 +18,7 @@ import { createEvacCentersRouter } from "./routes/evac-centers.js";
 import { createHazardRouter } from "./routes/hazard.js";
 import { createEventsRouter } from "./routes/events.js";
 import { createIncidentsRouter } from "./routes/incidents.js";
+import { createKpiRouter } from "./routes/kpi.js";
 import { LifecycleEngine } from "./lifecycle/engine.js";
 import { createMetaRouter } from "./routes/meta.js";
 import { EventBus } from "./realtime/event-bus.js";
@@ -72,6 +73,7 @@ const startServer = async (): Promise<void> => {
   app.use("/api/evac-centers", createEvacCentersRouter(incidentStore));
   app.use("/api/events", createEventsRouter(eventBus));
   app.use("/api/incidents", createIncidentsRouter(incidentStore, lifecycleEngine, eventBus));
+  app.use("/api/kpi", createKpiRouter(incidentStore));
   app.use("/api/hazard", createHazardRouter(dataStore));
   app.use("/api/meta", createMetaRouter(dataStore));
   app.use("/api", createAnalysisRouter(dataStore));

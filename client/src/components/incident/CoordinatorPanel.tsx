@@ -8,6 +8,8 @@ import {
 } from "../../lib/api"
 import type { IncidentRow } from "../../lib/types"
 import { useIncidentStream } from "../../hooks/useIncidentStream"
+import { IncidentTimeline } from "./IncidentTimeline"
+import { KpiDashboard } from "./KpiDashboard"
 import { StatusBadge } from "./StatusBadge"
 
 type Props = {
@@ -101,6 +103,8 @@ export function CoordinatorPanel({ token, onLogout }: Props): JSX.Element {
           </button>
         ))}
       </div>
+
+      <KpiDashboard token={token} />
 
       {toast && (
         <div
@@ -276,6 +280,11 @@ function IncidentQueueRow({
             <span className="font-mono">v{incident.version}</span>
             <span>&middot;</span>
             <span className="font-mono">{incident.id.slice(0, 8)}</span>
+          </div>
+
+          <div className="mt-3 border-t border-[#334155]/30 pt-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Audit Timeline</p>
+            <IncidentTimeline token={token} incidentId={incident.id} />
           </div>
         </div>
       )}
