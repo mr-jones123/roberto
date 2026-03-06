@@ -1,0 +1,98 @@
+[
+  {
+    "id": "evac-001",
+    "name": "Rizal Hall - University of the Philippines Diliman",
+    "latitude": 14.6549,
+    "longitude": 121.0749,
+    "capacity": 500,
+    "status": "open"
+  },
+  {
+    "id": "evac-002",
+    "name": "Quezon City Sports Complex",
+    "latitude": 14.6295,
+    "longitude": 121.0456,
+    "capacity": 800,
+    "status": "open"
+  },
+  {
+    "id": "evac-003",
+    "name": "Marikina Riverbanks Center",
+    "latitude": 14.5795,
+    "longitude": 121.1149,
+    "capacity": 600,
+    "status": "open"
+  },
+  {
+    "id": "evac-004",
+    "name": "Pasig City Convention Center",
+    "latitude": 14.5795,
+    "longitude": 121.0849,
+    "capacity": 1000,
+    "status": "open"
+  },
+  {
+    "id": "evac-005",
+    "name": "Mandaluyong Sports Complex",
+    "latitude": 14.5795,
+    "longitude": 121.0349,
+    "capacity": 700,
+    "status": "open"
+  },
+  {
+    "id": "evac-006",
+    "name": "San Juan Covered Court",
+    "latitude": 14.5995,
+    "longitude": 121.0149,
+    "capacity": 400,
+    "status": "open"
+  },
+  {
+    "id": "evac-007",
+    "name": "Makati Barangay Hall - Bangkal",
+    "latitude": 14.5495,
+    "longitude": 121.0249,
+    "capacity": 350,
+    "status": "open"
+  },
+  {
+    "id": "evac-008",
+    "name": "Taguig City Convention Center",
+    "latitude": 14.5195,
+    "longitude": 121.0549,
+    "capacity": 900,
+    "status": "open"
+  },
+  {
+    "id": "evac-009",
+    "name": "Parañaque Sports Complex",
+    "latitude": 14.3595,
+    "longitude": 121.0149,
+    "capacity": 750,
+    "status": "open"
+  },
+  {
+    "id": "evac-010",
+    "name": "Las Piñas Barangay Hall - Almanza",
+    "latitude": 14.3495,
+    "longitude": 120.9549,
+    "capacity": 450,
+    "status": "open"
+  },
+  {
+    "id": "evac-011",
+    "name": "Caloocan City Gymnasium",
+    "latitude": 14.7195,
+    "longitude": 120.9849,
+    "capacity": 650,
+    "status": "open"
+  },
+  {
+    "id": "evac-012",
+    "name": "Malabon Covered Court",
+    "latitude": 14.7495,
+    "longitude": 120.9649,
+    "capacity": 500,
+    "status": "open"
+  }
+]

@@ -8,9 +8,13 @@ import { fileURLToPath } from "node:url";
 import { createDataStore, loadDataBundle } from "./data-store.js";
 import { migrate } from "./db/migrate.js";
 import { seedUsers } from "./db/seed-users.js";
+import { seedEvacCenters } from "./db/seed-evac-centers.js";
+import { IncidentStore } from "./db/incident-store.js";
 import { createAnalysisRouter } from "./routes/analysis.js";
+import { createAuthRouter } from "./routes/auth.js";
 import { createBoundariesRouter } from "./routes/boundaries.js";
 import { createCitiesRouter } from "./routes/cities.js";
+import { createEvacCentersRouter } from "./routes/evac-centers.js";
 import { createHazardRouter } from "./routes/hazard.js";
 import { createMetaRouter } from "./routes/meta.js";
 import { createProjectsRouter } from "./routes/projects.js";
@@ -40,21 +44,26 @@ const parsePort = (value: string | undefined): number => {
 const startServer = async (): Promise<void> => {
   migrate();
   seedUsers();
+  seedEvacCenters();
 
   const dataBundle = await loadDataBundle(resolveDataDirectory());
   const dataStore = createDataStore(dataBundle);
+  const incidentStore = new IncidentStore();
 
   const app = express();
 
   app.use(compression());
+  app.use(express.json());
 
   if (process.env.NODE_ENV !== "production") {
     app.use(cors({ origin: "http://localhost:5173" }));
   }
 
+  app.use("/api/auth", createAuthRouter(incidentStore));
   app.use("/api/cities", createCitiesRouter(dataStore));
   app.use("/api/projects", createProjectsRouter(dataStore));
   app.use("/api/boundaries", createBoundariesRouter(dataStore));
+  app.use("/api/evac-centers", createEvacCentersRouter(incidentStore));
   app.use("/api/hazard", createHazardRouter(dataStore));
   app.use("/api/meta", createMetaRouter(dataStore));
   app.use("/api", createAnalysisRouter(dataStore));
