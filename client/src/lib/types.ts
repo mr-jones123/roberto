@@ -46,3 +46,22 @@ export type CityDetail = {
   city: City
   projects: Project[]
 }
+
+export type IncidentRow = {
+  id: string
+  title: string
+  description: string
+  latitude: number
+  longitude: number
+  status: string
+  priority: number | null
+  reporter_id: string
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export type SSEEvent = {
+  type: "incident_created" | "incident_updated"
+  incident: IncidentRow
+}

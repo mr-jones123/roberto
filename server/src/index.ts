@@ -16,9 +16,11 @@ import { createBoundariesRouter } from "./routes/boundaries.js";
 import { createCitiesRouter } from "./routes/cities.js";
 import { createEvacCentersRouter } from "./routes/evac-centers.js";
 import { createHazardRouter } from "./routes/hazard.js";
+import { createEventsRouter } from "./routes/events.js";
 import { createIncidentsRouter } from "./routes/incidents.js";
 import { LifecycleEngine } from "./lifecycle/engine.js";
 import { createMetaRouter } from "./routes/meta.js";
+import { EventBus } from "./realtime/event-bus.js";
 import { createProjectsRouter } from "./routes/projects.js";
 
 dotenv.config();
@@ -52,6 +54,7 @@ const startServer = async (): Promise<void> => {
   const dataStore = createDataStore(dataBundle);
   const incidentStore = new IncidentStore();
   const lifecycleEngine = new LifecycleEngine(incidentStore);
+  const eventBus = new EventBus();
 
   const app = express();
 
@@ -67,7 +70,8 @@ const startServer = async (): Promise<void> => {
   app.use("/api/projects", createProjectsRouter(dataStore));
   app.use("/api/boundaries", createBoundariesRouter(dataStore));
   app.use("/api/evac-centers", createEvacCentersRouter(incidentStore));
-  app.use("/api/incidents", createIncidentsRouter(incidentStore, lifecycleEngine));
+  app.use("/api/events", createEventsRouter(eventBus));
+  app.use("/api/incidents", createIncidentsRouter(incidentStore, lifecycleEngine, eventBus));
   app.use("/api/hazard", createHazardRouter(dataStore));
   app.use("/api/meta", createMetaRouter(dataStore));
   app.use("/api", createAnalysisRouter(dataStore));

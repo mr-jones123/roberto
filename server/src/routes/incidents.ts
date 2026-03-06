@@ -5,10 +5,11 @@ import { requireAuth, requireRole } from "../auth/middleware.js";
 import { INCIDENT_ROLE, INCIDENT_STATUS } from "../contracts/incident-command.js";
 import type { IncidentStore } from "../db/incident-store.js";
 import type { LifecycleEngine } from "../lifecycle/engine.js";
+import type { EventBus } from "../realtime/event-bus.js";
 
 const paramId = (params: Record<string, unknown>): string => params.id as string;
 
-export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEngine): Router => {
+export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEngine, bus: EventBus): Router => {
   const router = Router();
 
   router.use(requireAuth);
@@ -45,6 +46,8 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
         action: "created",
         new_status: INCIDENT_STATUS.PING,
       });
+
+      bus.publish({ type: "incident_created", incident });
 
       res.status(201).json({ incident });
     }
@@ -90,6 +93,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
         return;
       }
 
+      bus.publish({ type: "incident_updated", incident: result.incident });
       res.json({ incident: result.incident });
     }
   );
@@ -128,6 +132,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
       store.updatePriority(id, priority);
       const updated = store.getIncident(id)!;
 
+      bus.publish({ type: "incident_updated", incident: updated });
       res.json({ incident: updated });
     }
   );
@@ -169,6 +174,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
         responder_id: responderId,
       });
 
+      bus.publish({ type: "incident_updated", incident: result.incident });
       res.json({ incident: result.incident });
     }
   );
@@ -202,6 +208,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
         return;
       }
 
+      bus.publish({ type: "incident_updated", incident: result.incident });
       res.json({ incident: result.incident });
     }
   );
@@ -235,6 +242,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
         return;
       }
 
+      bus.publish({ type: "incident_updated", incident: result.incident });
       res.json({ incident: result.incident });
     }
   );
