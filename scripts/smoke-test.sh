@@ -322,6 +322,73 @@ check_contains "SSE received incident_created event" "incident_created" "$SSE_CO
 check_contains "SSE contains incident data" "SSE Test Incident" "$SSE_CONTENT"
 
 # ═══════════════════════════════════════════════════════════
+# SECTION 9: Chat Domain (Nodes, Invites, Conversations)
+# ═══════════════════════════════════════════════════════════
+printf "\n${BOLD}--- Chat Domain ---${NC}\n"
+
+NODE1_RESP=$(curl -sf -X POST "$BASE_URL/api/nodes" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $REPORTER_TOKEN" \
+  -d '{"latitude":14.5995,"longitude":120.9842}')
+NODE1_ID=$(json_nested "node.id" "$NODE1_RESP")
+check_not_null "Register node for reporter1" "$NODE1_ID"
+
+REPORTER2_RESP=$(curl -sf -X POST "$BASE_URL/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"reporter2","password":"pass123"}')
+REPORTER2_TOKEN=$(json_val "token" "$REPORTER2_RESP")
+
+NODE2_RESP=$(curl -sf -X POST "$BASE_URL/api/nodes" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $REPORTER2_TOKEN" \
+  -d '{"latitude":14.6,"longitude":120.98}')
+NODE2_ID=$(json_nested "node.id" "$NODE2_RESP")
+check_not_null "Register node for reporter2" "$NODE2_ID"
+
+NEARBY_RESP=$(curl -sf "$BASE_URL/api/nodes/nearby?lat=14.5995&lng=120.9842" \
+  -H "Authorization: Bearer $REPORTER_TOKEN")
+NEARBY_COUNT=$(echo "$NEARBY_RESP" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('nodes',[])))" 2>/dev/null)
+check "Nearby nodes found" "2" "$NEARBY_COUNT"
+
+INVITE_RESP=$(curl -sf -X POST "$BASE_URL/api/invites" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $REPORTER_TOKEN" \
+  -d "{\"recipient_node_id\":\"$NODE2_ID\"}")
+INVITE_ID=$(json_nested "invite.id" "$INVITE_RESP")
+check_not_null "Create invite" "$INVITE_ID"
+check "Invite status is pending" "pending" "$(json_nested 'invite.status' "$INVITE_RESP")"
+
+INVITES_LIST=$(curl -sf "$BASE_URL/api/invites" \
+  -H "Authorization: Bearer $REPORTER_TOKEN")
+INVITES_COUNT=$(echo "$INVITES_LIST" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('invites',[])))" 2>/dev/null)
+check "Invites list has 1 entry" "1" "$INVITES_COUNT"
+
+ACCEPT_RESP=$(curl -sf -X PATCH "$BASE_URL/api/invites/$INVITE_ID/respond" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $REPORTER2_TOKEN" \
+  -d '{"action":"accepted","version":1}')
+check "Accept invite (status=accepted)" "accepted" "$(json_nested 'invite.status' "$ACCEPT_RESP")"
+CONV_ID=$(json_nested "conversation.id" "$ACCEPT_RESP")
+check_not_null "Conversation created on accept" "$CONV_ID"
+
+MSG_RESP=$(curl -sf -X POST "$BASE_URL/api/conversations/$CONV_ID/messages" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $REPORTER_TOKEN" \
+  -d '{"client_msg_id":"smoke-msg-1","body":"Hello from smoke test!"}')
+MSG_STATUS=$(echo "$MSG_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message',{}).get('body',''))" 2>/dev/null)
+check "Send message" "Hello from smoke test!" "$MSG_STATUS"
+
+MSGS_RESP=$(curl -sf "$BASE_URL/api/conversations/$CONV_ID/messages" \
+  -H "Authorization: Bearer $REPORTER2_TOKEN")
+MSGS_COUNT=$(echo "$MSGS_RESP" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('messages',[])))" 2>/dev/null)
+check "Read messages returns 1" "1" "$MSGS_COUNT"
+
+CONVS_RESP=$(curl -sf "$BASE_URL/api/conversations" \
+  -H "Authorization: Bearer $REPORTER_TOKEN")
+CONVS_COUNT=$(echo "$CONVS_RESP" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('conversations',[])))" 2>/dev/null)
+check "Conversations list has 1" "1" "$CONVS_COUNT"
+
+# ═══════════════════════════════════════════════════════════
 # SUMMARY
 # ═══════════════════════════════════════════════════════════
 printf "\n${BOLD}${CYAN}=== Summary ===${NC}\n"

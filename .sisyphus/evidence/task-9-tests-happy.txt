@@ -1,0 +1,30 @@
+
+> server@1.0.0 test
+> vitest run --reporter=verbose
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/xy/Programming/Self-Projects/projects/roberto/server[39m
+
+ [32m✓[39m src/lifecycle/invite-engine.test.ts[2m > [22mInviteEngine[2m > [22maccept: pending -> accepted, creates conversation and increments version[32m 13[2mms[22m[39m
+ [32m✓[39m src/lifecycle/invite-engine.test.ts[2m > [22mInviteEngine[2m > [22mreject: pending -> rejected[32m 4[2mms[22m[39m
+ [32m✓[39m src/lifecycle/invite-engine.test.ts[2m > [22mInviteEngine[2m > [22mcancel: pending -> cancelled[32m 3[2mms[22m[39m
+ [32m✓[39m src/lifecycle/invite-engine.test.ts[2m > [22mInviteEngine[2m > [22mversion mismatch returns 409[32m 3[2mms[22m[39m
+ [32m✓[39m src/lifecycle/invite-engine.test.ts[2m > [22mInviteEngine[2m > [22mcannot accept an already-accepted invite (422)[32m 3[2mms[22m[39m
+ [32m✓[39m src/lifecycle/invite-engine.test.ts[2m > [22mInviteEngine[2m > [22mexpired invite returns 422 on accept attempt[32m 3[2mms[22m[39m
+ [32m✓[39m src/lifecycle/invite-engine.test.ts[2m > [22mInviteEngine[2m > [22mreturns 422 for non-existent invite[32m 2[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mPOST /api/nodes creates node, returns 201[32m 25[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mGET /api/nodes/nearby returns nearby nodes[32m 7[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mPOST /api/invites creates invite, returns 201[32m 7[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mGET /api/invites returns invites for user's node[32m 5[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mPATCH /api/invites/:id/respond accept returns conversation[32m 8[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mPOST /api/conversations/:id/messages sends message, returns 201[32m 8[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mGET /api/conversations/:id/messages returns messages[32m 7[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22munauthenticated request returns 401[32m 4[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22mnon-participant reading messages returns 403[32m 7[2mms[22m[39m
+ [32m✓[39m src/routes/chat.test.ts[2m > [22mChat API[2m > [22midempotency: same client_msg_id twice returns same message[32m 8[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m17 passed[39m[22m[90m (17)[39m
+[2m   Start at [22m 22:27:38
+[2m   Duration [22m 330ms[2m (transform 139ms, setup 0ms, import 266ms, tests 120ms, environment 0ms)[22m
+
