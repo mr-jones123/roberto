@@ -1,16 +1,21 @@
-import { useEffect, useState, type FormEvent, type JSX } from "react"
+import { useEffect, useState, type JSX } from "react"
+import type React from "react"
 import { createIncident, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
-import type { EvacCenter, IncidentRow } from "../../lib/types"
+import type { EvacCenter, FacilityType, IncidentRow } from "../../lib/types"
 import { useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
+
+type RoutePoint = { lat: number; lng: number }
 
 type Props = {
   token: string
   userId: string
   onLogout: () => void
+  onSelectFacility: (from: RoutePoint, to: RoutePoint, name: string) => void
+  onFocusPing: (lat: number, lng: number) => void
 }
 
-export function ReporterPanel({ token, userId, onLogout }: Props): JSX.Element {
+export function ReporterPanel({ token, userId, onLogout, onSelectFacility, onFocusPing }: Props): JSX.Element {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [lat, setLat] = useState("")
@@ -55,7 +60,7 @@ export function ReporterPanel({ token, userId, onLogout }: Props): JSX.Element {
       .catch(() => {})
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     setFormError(null)
 
@@ -173,6 +178,8 @@ export function ReporterPanel({ token, userId, onLogout }: Props): JSX.Element {
                 ping={ping}
                 evacCenters={evacCache[ping.id]}
                 onExpand={() => loadEvac(ping)}
+                onSelectFacility={onSelectFacility}
+                onFocusPing={onFocusPing}
               />
             ))}
           </div>
@@ -186,55 +193,103 @@ function PingCard({
   ping,
   evacCenters,
   onExpand,
+  onSelectFacility,
+  onFocusPing,
 }: {
   ping: IncidentRow
   evacCenters: EvacCenter[] | undefined
   onExpand: () => void
+  onSelectFacility: (from: RoutePoint, to: RoutePoint, name: string) => void
+  onFocusPing: (lat: number, lng: number) => void
 }): JSX.Element {
   const [expanded, setExpanded] = useState(false)
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null)
 
   const toggle = () => {
-    if (!expanded) onExpand()
+    if (!expanded) {
+      onExpand()
+      onFocusPing(ping.latitude, ping.longitude)
+    }
     setExpanded((v) => !v)
   }
 
   return (
-    <button
-      onClick={toggle}
-      className="w-full rounded-lg border border-[#334155]/50 bg-[#0f172a] p-3 text-left transition-colors hover:border-[#334155]"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p data-testid="incident-id" className="truncate text-sm font-medium text-slate-200">
-            {ping.title}
-          </p>
-          <p className="mt-0.5 text-[10px] font-mono text-slate-600">
-            {ping.latitude.toFixed(4)}, {ping.longitude.toFixed(4)}
-          </p>
+    <div className="w-full rounded-lg border border-[#334155]/50 bg-[#0f172a] p-3 text-left transition-colors hover:border-[#334155]">
+      <button type="button" onClick={toggle} className="w-full text-left">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p data-testid="incident-id" className="truncate text-sm font-medium text-slate-200">
+              {ping.title}
+            </p>
+            <p className="mt-0.5 text-[10px] font-mono text-slate-600">
+              {ping.latitude.toFixed(4)}, {ping.longitude.toFixed(4)}
+            </p>
+          </div>
+          <StatusBadge status={ping.status} data-testid="incident-status" />
         </div>
-        <StatusBadge status={ping.status} data-testid="incident-status" />
-      </div>
+      </button>
 
       {expanded && (
         <div className="mt-2 border-t border-[#334155]/50 pt-2">
           <p className="text-xs text-slate-400">{ping.description}</p>
           {evacCenters && evacCenters.length > 0 && (
             <div className="mt-2">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Nearest Evacuation Centers
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Critical Facilities Near You
               </p>
-              {evacCenters.map((c) => (
-                <div key={c.id} className="flex items-center justify-between py-0.5">
-                  <span className="truncate text-[11px] text-slate-400">{c.name}</span>
-                  <span className="ml-2 flex-shrink-0 text-[10px] font-mono text-slate-500">
-                    {c.distance_km.toFixed(1)} km
-                  </span>
-                </div>
-              ))}
+              <div className="space-y-1.5">
+                {evacCenters.map((c) => {
+                  const isSelected = c.id === selectedFacilityId
+
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedFacilityId(c.id)
+                        onSelectFacility(
+                          { lat: ping.latitude, lng: ping.longitude },
+                          { lat: c.latitude, lng: c.longitude },
+                          c.name,
+                        )
+                      }}
+                      className={`w-full rounded-md border px-2.5 py-2 text-left transition-colors ${
+                        isSelected
+                          ? "border-blue-500/50 bg-blue-500/10"
+                          : "border-[#334155] bg-[#1e293b]/30 hover:border-[#475569] hover:bg-[#1e293b]/60"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span className="text-sm leading-none">{getFacilityEmoji(c.type)}</span>
+                          <span className="truncate text-[11px] text-slate-300">{c.name}</span>
+                        </div>
+                        <span className="ml-2 flex-shrink-0 text-[10px] font-mono text-slate-500">
+                          {c.distance_km.toFixed(1)} km
+                        </span>
+                      </div>
+                      {isSelected && (
+                        <span className="mt-1 inline-flex rounded-full border border-blue-400/30 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-blue-300">
+                          🚶 Walking route
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
       )}
-    </button>
+    </div>
   )
+}
+
+function getFacilityEmoji(type: FacilityType): string {
+  if (type === "hospital") return "🏥"
+  if (type === "school") return "🏫"
+  if (type === "fire_station") return "🚒"
+  if (type === "police_station") return "🚔"
+  return "🏛"
 }

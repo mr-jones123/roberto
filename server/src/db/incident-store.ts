@@ -47,9 +47,12 @@ export type AssignmentRow = {
   updated_at: string;
 };
 
+export type FacilityType = "evacuation_center" | "school" | "hospital" | "fire_station" | "police_station";
+
 export type EvacCenterRow = {
   id: string;
   name: string;
+  type: FacilityType;
   latitude: number;
   longitude: number;
   capacity: number | null;
@@ -88,6 +91,7 @@ export type CreateAssignmentInput = {
 export type UpsertEvacCenterInput = {
   id: string;
   name: string;
+  type?: FacilityType;
   latitude: number;
   longitude: number;
   capacity?: number;
@@ -171,10 +175,11 @@ export class IncidentStore {
 
   upsertEvacCenter(input: UpsertEvacCenterInput): EvacCenterRow {
     const stmt = this.db.prepare(`
-      INSERT INTO evac_centers (id, name, latitude, longitude, capacity, current_load, status)
-      VALUES (@id, @name, @latitude, @longitude, @capacity, @current_load, @status)
+      INSERT INTO evac_centers (id, name, type, latitude, longitude, capacity, current_load, status)
+      VALUES (@id, @name, @type, @latitude, @longitude, @capacity, @current_load, @status)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
+        type = excluded.type,
         latitude = excluded.latitude,
         longitude = excluded.longitude,
         capacity = excluded.capacity,
@@ -185,6 +190,7 @@ export class IncidentStore {
     stmt.run({
       id: input.id,
       name: input.name,
+      type: input.type ?? "evacuation_center",
       latitude: input.latitude,
       longitude: input.longitude,
       capacity: input.capacity ?? null,
@@ -196,7 +202,11 @@ export class IncidentStore {
     return row as EvacCenterRow;
   }
 
-  listEvacCenters(): EvacCenterRow[] {
+  listEvacCenters(type?: FacilityType): EvacCenterRow[] {
+    if (type) {
+      const stmt = this.db.prepare("SELECT * FROM evac_centers WHERE type = ? ORDER BY name ASC");
+      return stmt.all(type) as EvacCenterRow[];
+    }
     const stmt = this.db.prepare("SELECT * FROM evac_centers ORDER BY name ASC");
     return stmt.all() as EvacCenterRow[];
   }

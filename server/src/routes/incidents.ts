@@ -12,10 +12,9 @@ const paramId = (params: Record<string, unknown>): string => params.id as string
 export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEngine, bus: EventBus): Router => {
   const router = Router();
 
-  router.use(requireAuth);
-
   router.post(
     "/",
+    requireAuth,
     requireRole(INCIDENT_ROLE.REPORTER),
     (req, res) => {
       const { title, description, latitude, longitude } = req.body as Record<string, unknown>;
@@ -58,7 +57,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
     res.json({ incidents });
   });
 
-  router.get("/:id", (req, res) => {
+  router.get("/:id", requireAuth, (req, res) => {
     const incident = store.getIncident(paramId(req.params));
 
     if (!incident) {
@@ -72,6 +71,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
 
   router.patch(
     "/:id/verify",
+    requireAuth,
     requireRole(INCIDENT_ROLE.COORDINATOR),
     (req, res) => {
       const { version } = req.body as Record<string, unknown>;
@@ -100,6 +100,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
 
   router.patch(
     "/:id/prioritize",
+    requireAuth,
     requireRole(INCIDENT_ROLE.COORDINATOR),
     (req, res) => {
       const { priority, version } = req.body as Record<string, unknown>;
@@ -139,6 +140,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
 
   router.patch(
     "/:id/assign",
+    requireAuth,
     requireRole(INCIDENT_ROLE.COORDINATOR),
     (req, res) => {
       const { responderId, version } = req.body as Record<string, unknown>;
@@ -181,6 +183,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
 
   router.patch(
     "/:id/resolve",
+    requireAuth,
     requireRole(INCIDENT_ROLE.RESPONDER),
     (req, res) => {
       const { note, version } = req.body as Record<string, unknown>;
@@ -215,6 +218,7 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
 
   router.patch(
     "/:id/reject",
+    requireAuth,
     requireRole(INCIDENT_ROLE.COORDINATOR),
     (req, res) => {
       const { reason, version } = req.body as Record<string, unknown>;

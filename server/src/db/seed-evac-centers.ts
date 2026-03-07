@@ -2,13 +2,15 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type { FacilityType } from "./incident-store.js";
 import { IncidentStore } from "./incident-store.js";
 
 const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-type EvacCenterSeedData = {
+type FacilitySeedData = {
   id: string;
   name: string;
+  type: FacilityType;
   latitude: number;
   longitude: number;
   capacity: number;
@@ -17,7 +19,7 @@ type EvacCenterSeedData = {
 
 export const seedEvacCenters = (): void => {
   const seedPath = path.resolve(CURRENT_DIR, "../../../data/evac-centers.json");
-  const seedData = JSON.parse(readFileSync(seedPath, "utf-8")) as EvacCenterSeedData[];
+  const seedData = JSON.parse(readFileSync(seedPath, "utf-8")) as FacilitySeedData[];
 
   const store = new IncidentStore();
 
@@ -25,6 +27,7 @@ export const seedEvacCenters = (): void => {
     store.upsertEvacCenter({
       id: center.id,
       name: center.name,
+      type: center.type ?? "evacuation_center",
       latitude: center.latitude,
       longitude: center.longitude,
       capacity: center.capacity,
@@ -33,7 +36,7 @@ export const seedEvacCenters = (): void => {
   }
 
   store.close();
-  process.stdout.write(`Seeded ${seedData.length} evacuation centers\n`);
+  process.stdout.write(`Seeded ${seedData.length} facilities\n`);
 };
 
 const isDirectExecution = process.argv[1]?.includes("seed-evac-centers");

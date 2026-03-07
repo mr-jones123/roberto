@@ -77,9 +77,12 @@ export type LoginResponse = {
   user: AuthUser
 }
 
+export type FacilityType = "evacuation_center" | "school" | "hospital" | "fire_station" | "police_station"
+
 export type EvacCenter = {
   id: string
   name: string
+  type: FacilityType
   latitude: number
   longitude: number
   distance_km: number
@@ -88,6 +91,7 @@ export type EvacCenter = {
 export type EvacCenterRow = {
   id: string
   name: string
+  type: FacilityType
   latitude: number
   longitude: number
   capacity: number | null
@@ -95,6 +99,18 @@ export type EvacCenterRow = {
   status: "open" | "full" | "closed"
   created_at: string
   updated_at: string
+}
+
+export type OsrmRouteResponse = {
+  code: "Ok" | "NoRoute" | "InvalidUrl" | "NoSegment"
+  routes: Array<{
+    distance: number
+    duration: number
+    geometry: {
+      type: "LineString"
+      coordinates: [number, number][]
+    }
+  }>
 }
 
 export type KpiResponse = {

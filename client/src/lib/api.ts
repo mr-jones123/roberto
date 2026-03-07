@@ -1,4 +1,4 @@
-import type { AnalysisResponse, City, CityDetail, EvacCenter, EvacCenterRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, Meta, Project } from "./types"
+import type { AnalysisResponse, City, CityDetail, EvacCenter, EvacCenterRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, Meta, OsrmRouteResponse, Project } from "./types"
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -101,8 +101,19 @@ export function fetchEvacCenters(): Promise<{ centers: EvacCenterRow[] }> {
 export function fetchNearestEvacCenters(
   lat: number,
   lng: number,
+  limit = 6,
 ): Promise<{ centers: EvacCenter[] }> {
-  return fetchJson(`/api/evac-centers/nearest?lat=${lat}&lng=${lng}&limit=3`)
+  return fetchJson(`/api/evac-centers/nearest?lat=${lat}&lng=${lng}&limit=${limit}`)
+}
+
+export function fetchRoute(
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number,
+  profile: "foot" | "driving" | "bike" = "foot",
+): Promise<OsrmRouteResponse> {
+  return fetchJson(`/api/route?profile=${profile}&from=${fromLng},${fromLat}&to=${toLng},${toLat}`)
 }
 
 export function verifyIncident(

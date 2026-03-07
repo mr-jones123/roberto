@@ -2,6 +2,7 @@
   {
     "id": "evac-001",
     "name": "Rizal Hall - University of the Philippines Diliman",
+    "type": "evacuation_center",
     "latitude": 14.6549,
     "longitude": 121.0749,
     "capacity": 500,
@@ -10,6 +11,7 @@
   {
     "id": "evac-002",
     "name": "Quezon City Sports Complex",
+    "type": "evacuation_center",
     "latitude": 14.6295,
     "longitude": 121.0456,
     "capacity": 800,
@@ -18,6 +20,7 @@
   {
     "id": "evac-003",
     "name": "Marikina Riverbanks Center",
+    "type": "evacuation_center",
     "latitude": 14.5795,
     "longitude": 121.1149,
     "capacity": 600,
@@ -26,6 +29,7 @@
   {
     "id": "evac-004",
     "name": "Pasig City Convention Center",
+    "type": "evacuation_center",
     "latitude": 14.5795,
     "longitude": 121.0849,
     "capacity": 1000,
@@ -34,6 +38,7 @@
   {
     "id": "evac-005",
     "name": "Mandaluyong Sports Complex",
+    "type": "evacuation_center",
     "latitude": 14.5795,
     "longitude": 121.0349,
     "capacity": 700,
@@ -42,6 +47,7 @@
   {
     "id": "evac-006",
     "name": "San Juan Covered Court",
+    "type": "evacuation_center",
     "latitude": 14.5995,
     "longitude": 121.0149,
     "capacity": 400,
@@ -50,6 +56,7 @@
   {
     "id": "evac-007",
     "name": "Makati Barangay Hall - Bangkal",
+    "type": "evacuation_center",
     "latitude": 14.5495,
     "longitude": 121.0249,
     "capacity": 350,
@@ -58,6 +65,7 @@
   {
     "id": "evac-008",
     "name": "Taguig City Convention Center",
+    "type": "evacuation_center",
     "latitude": 14.5195,
     "longitude": 121.0549,
     "capacity": 900,
@@ -66,6 +74,7 @@
   {
     "id": "evac-009",
     "name": "Parañaque Sports Complex",
+    "type": "evacuation_center",
     "latitude": 14.3595,
     "longitude": 121.0149,
     "capacity": 750,
@@ -74,6 +83,7 @@
   {
     "id": "evac-010",
     "name": "Las Piñas Barangay Hall - Almanza",
+    "type": "evacuation_center",
     "latitude": 14.3495,
     "longitude": 120.9549,
     "capacity": 450,
@@ -82,6 +92,7 @@
   {
     "id": "evac-011",
     "name": "Caloocan City Gymnasium",
+    "type": "evacuation_center",
     "latitude": 14.7195,
     "longitude": 120.9849,
     "capacity": 650,
@@ -90,9 +101,235 @@
   {
     "id": "evac-012",
     "name": "Malabon Covered Court",
+    "type": "evacuation_center",
     "latitude": 14.7495,
     "longitude": 120.9649,
     "capacity": 500,
+    "status": "open"
+  },
+  {
+    "id": "hosp-001",
+    "name": "Philippine General Hospital",
+    "type": "hospital",
+    "latitude": 14.5781,
+    "longitude": 120.9855,
+    "capacity": 1500,
+    "status": "open"
+  },
+  {
+    "id": "hosp-002",
+    "name": "Ospital ng Maynila Medical Center",
+    "type": "hospital",
+    "latitude": 14.5639,
+    "longitude": 120.9864,
+    "capacity": 300,
+    "status": "open"
+  },
+  {
+    "id": "hosp-003",
+    "name": "Jose R. Reyes Memorial Medical Center",
+    "type": "hospital",
+    "latitude": 14.6140,
+    "longitude": 120.9822,
+    "capacity": 600,
+    "status": "open"
+  },
+  {
+    "id": "hosp-004",
+    "name": "Tondo Medical Center",
+    "type": "hospital",
+    "latitude": 14.6351,
+    "longitude": 120.9631,
+    "capacity": 300,
+    "status": "open"
+  },
+  {
+    "id": "hosp-005",
+    "name": "Mary Johnston Hospital",
+    "type": "hospital",
+    "latitude": 14.6091,
+    "longitude": 120.9662,
+    "capacity": 200,
+    "status": "open"
+  },
+  {
+    "id": "hosp-006",
+    "name": "East Avenue Medical Center",
+    "type": "hospital",
+    "latitude": 14.6419,
+    "longitude": 121.0477,
+    "capacity": 600,
+    "status": "open"
+  },
+  {
+    "id": "hosp-007",
+    "name": "Quirino Memorial Medical Center",
+    "type": "hospital",
+    "latitude": 14.6222,
+    "longitude": 121.0724,
+    "capacity": 1000,
+    "status": "open"
+  },
+  {
+    "id": "hosp-008",
+    "name": "Valenzuela Medical Center",
+    "type": "hospital",
+    "latitude": 14.6898,
+    "longitude": 120.9781,
+    "capacity": 400,
+    "status": "open"
+  },
+  {
+    "id": "school-001",
+    "name": "Marikina Elementary School",
+    "type": "school",
+    "latitude": 14.6311,
+    "longitude": 121.0975,
+    "capacity": 400,
+    "status": "open"
+  },
+  {
+    "id": "school-002",
+    "name": "Rizal High School",
+    "type": "school",
+    "latitude": 14.5681,
+    "longitude": 121.0756,
+    "capacity": 500,
+    "status": "open"
+  },
+  {
+    "id": "school-003",
+    "name": "Navotas National High School",
+    "type": "school",
+    "latitude": 14.6578,
+    "longitude": 120.9481,
+    "capacity": 350,
+    "status": "open"
+  },
+  {
+    "id": "school-004",
+    "name": "Malabon National High School",
+    "type": "school",
+    "latitude": 14.6769,
+    "longitude": 120.9417,
+    "capacity": 400,
+    "status": "open"
+  },
+  {
+    "id": "school-005",
+    "name": "Caloocan High School",
+    "type": "school",
+    "latitude": 14.6516,
+    "longitude": 120.9821,
+    "capacity": 450,
+    "status": "open"
+  },
+  {
+    "id": "school-006",
+    "name": "Valenzuela National High School",
+    "type": "school",
+    "latitude": 14.6725,
+    "longitude": 120.9850,
+    "capacity": 400,
+    "status": "open"
+  },
+  {
+    "id": "school-007",
+    "name": "Almario Elementary School",
+    "type": "school",
+    "latitude": 14.5950,
+    "longitude": 120.9820,
+    "capacity": 300,
+    "status": "open"
+  },
+  {
+    "id": "fire-001",
+    "name": "BFP National Headquarters",
+    "type": "fire_station",
+    "latitude": 14.6519,
+    "longitude": 121.0381,
+    "capacity": 100,
+    "status": "open"
+  },
+  {
+    "id": "fire-002",
+    "name": "Caloocan City Central Fire Station",
+    "type": "fire_station",
+    "latitude": 14.6578,
+    "longitude": 120.9742,
+    "capacity": 50,
+    "status": "open"
+  },
+  {
+    "id": "fire-003",
+    "name": "Makati Central Fire Station",
+    "type": "fire_station",
+    "latitude": 14.5624,
+    "longitude": 121.0151,
+    "capacity": 50,
+    "status": "open"
+  },
+  {
+    "id": "fire-004",
+    "name": "Marikina City Fire Station",
+    "type": "fire_station",
+    "latitude": 14.6320,
+    "longitude": 121.0960,
+    "capacity": 50,
+    "status": "open"
+  },
+  {
+    "id": "fire-005",
+    "name": "Pasig City Fire Station",
+    "type": "fire_station",
+    "latitude": 14.5600,
+    "longitude": 121.0750,
+    "capacity": 50,
+    "status": "open"
+  },
+  {
+    "id": "police-001",
+    "name": "Manila Police District Station 1 (Tondo)",
+    "type": "police_station",
+    "latitude": 14.6091,
+    "longitude": 120.9662,
+    "capacity": 80,
+    "status": "open"
+  },
+  {
+    "id": "police-002",
+    "name": "Manila Police District Station 5 (Ermita)",
+    "type": "police_station",
+    "latitude": 14.5819,
+    "longitude": 120.9733,
+    "capacity": 80,
+    "status": "open"
+  },
+  {
+    "id": "police-003",
+    "name": "Manila Police District Station 8 (Santa Mesa)",
+    "type": "police_station",
+    "latitude": 14.6019,
+    "longitude": 121.0119,
+    "capacity": 80,
+    "status": "open"
+  },
+  {
+    "id": "police-004",
+    "name": "QCPD Headquarters (Camp Karingal)",
+    "type": "police_station",
+    "latitude": 14.6381,
+    "longitude": 121.0631,
+    "capacity": 150,
+    "status": "open"
+  },
+  {
+    "id": "police-005",
+    "name": "Pasig City Police Headquarters",
+    "type": "police_station",
+    "latitude": 14.5697,
+    "longitude": 121.0817,
+    "capacity": 100,
     "status": "open"
   }
 ]

@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS assignments (
 CREATE TABLE IF NOT EXISTS evac_centers (
   id            TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
+  type          TEXT NOT NULL DEFAULT 'evacuation_center'
+                CHECK (type IN ('evacuation_center', 'school', 'hospital', 'fire_station', 'police_station')),
   latitude      REAL NOT NULL,
   longitude     REAL NOT NULL,
   capacity      INTEGER,
@@ -66,3 +68,4 @@ CREATE INDEX IF NOT EXISTS idx_incident_events_created ON incident_events(create
 CREATE INDEX IF NOT EXISTS idx_assignments_incident ON assignments(incident_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_responder ON assignments(responder_id);
 CREATE INDEX IF NOT EXISTS idx_evac_centers_status ON evac_centers(status);
+CREATE INDEX IF NOT EXISTS idx_evac_centers_type ON evac_centers(type);

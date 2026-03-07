@@ -1,7 +1,7 @@
 import L from "leaflet"
 import { useEffect, useRef } from "react"
 import type React from "react"
-import { GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer } from "react-leaflet"
+import { GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from "react-leaflet"
 import MarkerClusterGroup from "react-leaflet-cluster"
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css"
 import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css"
@@ -9,6 +9,7 @@ import type { GeoJSON as GeoJSONLayer } from "leaflet"
 import { formatPHP, scoreColor } from "../lib/colors"
 import type { City, EvacCenterRow, IncidentRow, Project } from "../lib/types"
 import { IncidentMapLayers } from "./IncidentMapLayers"
+import { RouteOverlay } from "./RouteOverlay"
 
 type FeatureLayer = L.Path & { feature: GeoJSON.Feature }
 
@@ -65,6 +66,10 @@ type Props = {
   showIncidents?: boolean
   evacCenters?: EvacCenterRow[]
   showEvacCenters?: boolean
+  routeFrom?: { lat: number; lng: number } | null
+  routeTo?: { lat: number; lng: number } | null
+  routeFacilityName?: string | null
+  focusLocation?: { lat: number; lng: number } | null
 }
 
 function getCityScore(cities: City[], cityNorm: string): number {
@@ -96,6 +101,8 @@ export function ChoroplethMap({
   selectedCityId, onSelectCity, showHazard, showProjects,
   incidents = [], showIncidents = false,
   evacCenters = [], showEvacCenters = false,
+  routeFrom = null, routeTo = null, routeFacilityName = null,
+  focusLocation = null,
 }: Props): React.JSX.Element | null {
   const geoJsonRef = useRef<GeoJSONLayer | null>(null)
 
@@ -221,8 +228,20 @@ export function ChoroplethMap({
         evacCenters={evacCenters}
         showEvacCenters={showEvacCenters}
       />
+
+      <RouteOverlay from={routeFrom} to={routeTo} facilityName={routeFacilityName} />
+
+      {focusLocation && <MapFlyTo lat={focusLocation.lat} lng={focusLocation.lng} />}
     </MapContainer>
   )
+}
+
+function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap()
+  useEffect(() => {
+    map.flyTo([lat, lng], 15, { duration: 1.2 })
+  }, [map, lat, lng])
+  return null
 }
 
 function ProjectPopupContent({ project: p }: { project: Project }) {
@@ -265,5 +284,4 @@ function PopupField({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-
 

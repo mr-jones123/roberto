@@ -10,6 +10,25 @@ export function useIncidentStream(): UseIncidentStreamResult {
   const [incidents, setIncidents] = useState<IncidentRow[]>([])
   const [lastEvent, setLastEvent] = useState<SSEEvent | null>(null)
   const sourceRef = useRef<EventSource | null>(null)
+  const seededRef = useRef(false)
+
+  useEffect(() => {
+    if (seededRef.current) return
+    seededRef.current = true
+
+    fetch("/api/incidents")
+      .then((res) => (res.ok ? (res.json() as Promise<{ incidents: IncidentRow[] }>) : null))
+      .then((data) => {
+        if (data?.incidents.length) {
+          setIncidents((prev) => {
+            const existingIds = new Set(prev.map((i) => i.id))
+            const newOnes = data.incidents.filter((i) => !existingIds.has(i.id))
+            return newOnes.length ? [...prev, ...newOnes] : prev
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const source = new EventSource("/api/events")

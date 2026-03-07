@@ -1,7 +1,7 @@
 import L from "leaflet"
 import type React from "react"
 import { CircleMarker, Marker, Pane, Popup } from "react-leaflet"
-import type { EvacCenterRow, IncidentRow } from "../lib/types"
+import type { EvacCenterRow, FacilityType, IncidentRow } from "../lib/types"
 
 const INCIDENT_STATUS_COLORS: Record<string, string> = {
   PING: "#ef4444",
@@ -17,13 +17,32 @@ const EVAC_STATUS_LABELS: Record<string, { bg: string; fg: string }> = {
   closed: { bg: "#ef444420", fg: "#ef4444" },
 }
 
-const EVAC_ICON = L.divIcon({
-  className: "roberto-evac-marker",
-  html: `<span class="roberto-evac-marker__inner">+</span>`,
-  iconSize: L.point(22, 22, true),
-  iconAnchor: L.point(11, 11, true),
-  popupAnchor: [0, -13],
-})
+const FACILITY_STYLE: Record<FacilityType, { symbol: string; color: string }> = {
+  hospital: { symbol: "✚", color: "#dc2626" },
+  school: { symbol: "S", color: "#2563eb" },
+  fire_station: { symbol: "🔥", color: "#ea580c" },
+  police_station: { symbol: "★", color: "#1e3a8a" },
+  evacuation_center: { symbol: "⛺", color: "#16a34a" },
+}
+
+const FACILITY_ICONS: Partial<Record<FacilityType, L.DivIcon>> = {}
+
+function getFacilityIcon(type: FacilityType): L.DivIcon {
+  const cached = FACILITY_ICONS[type]
+  if (cached) return cached
+
+  const style = FACILITY_STYLE[type]
+  const icon = L.divIcon({
+    className: "roberto-facility-marker",
+    html: `<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9999px;background:${style.color};color:#ffffff;font-size:15px;font-weight:700;line-height:1;border:2.5px solid #ffffff;box-shadow:0 2px 10px rgba(0,0,0,0.4);">${style.symbol}</span>`,
+    iconSize: L.point(32, 32, true),
+    iconAnchor: L.point(16, 16, true),
+    popupAnchor: [0, -18],
+  })
+
+  FACILITY_ICONS[type] = icon
+  return icon
+}
 
 type IncidentLayerProps = {
   incidents: IncidentRow[]
@@ -69,7 +88,7 @@ export function IncidentMapLayers({
             <Marker
               key={ec.id}
               position={[ec.latitude, ec.longitude]}
-              icon={EVAC_ICON}
+              icon={getFacilityIcon(ec.type)}
             >
               <Popup className="roberto-popup" pane="popupPane" maxWidth={280} minWidth={200}>
                 <EvacPopupContent center={ec} />

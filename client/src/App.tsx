@@ -14,6 +14,12 @@ import { useIncidentStream } from "./hooks/useIncidentStream"
 import { fetchEvacCenters } from "./lib/api"
 import type { EvacCenterRow } from "./lib/types"
 
+type RouteTarget = {
+  from: { lat: number; lng: number }
+  to: { lat: number; lng: number }
+  name: string
+}
+
 function App(): JSX.Element {
   const { cities, boundaries, hazardZones, allProjects, loading, error } = useCities()
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null)
@@ -27,12 +33,25 @@ function App(): JSX.Element {
   const auth = useAuth()
   const { incidents } = useIncidentStream()
   const [evacCenters, setEvacCenters] = useState<EvacCenterRow[]>([])
+  const [routeTarget, setRouteTarget] = useState<RouteTarget | null>(null)
+  const [focusLocation, setFocusLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
     fetchEvacCenters()
       .then((res) => setEvacCenters(res.centers))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!incidentMode) {
+      setRouteTarget(null)
+    }
+  }, [incidentMode])
+
+  const handleLogout = () => {
+    setRouteTarget(null)
+    auth.logout()
+  }
 
   if (loading) {
     return (
@@ -77,7 +96,9 @@ function App(): JSX.Element {
         <ReporterPanel
           token={auth.token!}
           userId={auth.user!.id}
-          onLogout={auth.logout}
+          onLogout={handleLogout}
+          onSelectFacility={(from, to, name) => setRouteTarget({ from, to, name })}
+          onFocusPing={(lat, lng) => setFocusLocation({ lat, lng })}
         />
       )
     }
@@ -86,7 +107,7 @@ function App(): JSX.Element {
       return (
         <CoordinatorPanel
           token={auth.token!}
-          onLogout={auth.logout}
+          onLogout={handleLogout}
         />
       )
     }
@@ -94,7 +115,7 @@ function App(): JSX.Element {
     return (
       <ResponderPanel
         token={auth.token!}
-        onLogout={auth.logout}
+        onLogout={handleLogout}
       />
     )
   }
@@ -160,9 +181,13 @@ function App(): JSX.Element {
             showHazard={showHazard}
             showProjects={showProjects}
             incidents={incidents}
-            showIncidents={showIncidents}
+            showIncidents={showIncidents || incidentMode}
             evacCenters={evacCenters}
-            showEvacCenters={showEvacCenters}
+            showEvacCenters={showEvacCenters || incidentMode}
+            routeFrom={routeTarget?.from ?? null}
+            routeTo={routeTarget?.to ?? null}
+            routeFacilityName={routeTarget?.name ?? null}
+            focusLocation={focusLocation}
           />
         </main>
 
