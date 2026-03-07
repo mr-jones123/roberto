@@ -15,6 +15,14 @@ const getTokenFromRequest = (authorization: string | undefined, queryToken: unkn
     return queryToken.trim();
   }
 
+  if (Array.isArray(queryToken)) {
+    for (const candidate of queryToken) {
+      if (typeof candidate === "string" && candidate.trim() !== "") {
+        return candidate.trim();
+      }
+    }
+  }
+
   return null;
 };
 

@@ -542,14 +542,15 @@ export class IncidentStore {
   }
 
   listMessagesSince(conversationIds: string[], since: string): MessageRow[] {
-    if (conversationIds.length === 0) {
+    const uniqueConversationIds = [...new Set(conversationIds)];
+    if (uniqueConversationIds.length === 0) {
       return [];
     }
 
-    const placeholders = conversationIds.map((_, index) => `@conversationId${index}`).join(", ");
+    const placeholders = uniqueConversationIds.map((_, index) => `@conversationId${index}`).join(", ");
     const params: Record<string, unknown> = { since };
 
-    for (const [index, conversationId] of conversationIds.entries()) {
+    for (const [index, conversationId] of uniqueConversationIds.entries()) {
       params[`conversationId${index}`] = conversationId;
     }
 

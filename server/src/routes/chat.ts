@@ -8,6 +8,7 @@ import type { InviteEngine } from "../lifecycle/invite-engine.js";
 import type { EventBus } from "../realtime/event-bus.js";
 
 const paramId = (params: Record<string, unknown>): string => params.id as string;
+const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
 const getCatchupSince = (value: unknown): string => {
   const fallback = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -15,7 +16,12 @@ const getCatchupSince = (value: unknown): string => {
     return fallback;
   }
 
-  const parsed = new Date(value);
+  const trimmed = value.trim();
+  if (!ISO_DATE_TIME_PATTERN.test(trimmed)) {
+    return fallback;
+  }
+
+  const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) {
     return fallback;
   }
