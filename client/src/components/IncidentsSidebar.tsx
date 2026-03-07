@@ -1,8 +1,10 @@
 import type { JSX } from "react"
 import type { IncidentRow } from "../lib/types"
+import { useLocale } from "../lib/locale"
 
 type Props = {
   incidents: IncidentRow[]
+  onSelectIncident?: (incident: IncidentRow) => void
   onClose: () => void
 }
 
@@ -19,7 +21,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const ACTIVE_STATUSES = new Set(["PING", "VERIFIED", "PRIORITIZED", "ASSIGNED"])
 
-export function IncidentsSidebar({ incidents, onClose }: Props): JSX.Element {
+export function IncidentsSidebar({ incidents, onSelectIncident, onClose }: Props): JSX.Element {
+  const { t, locale } = useLocale()
   const statusCounts: Record<string, number> = {}
   for (const inc of incidents) {
     statusCounts[inc.status] = (statusCounts[inc.status] ?? 0) + 1
@@ -41,10 +44,10 @@ export function IncidentsSidebar({ incidents, onClose }: Props): JSX.Element {
       <div className="flex items-center justify-between border-b border-[#334155] px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-            Incidents Overview
+            {t("incidents.title")}
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            {incidents.length} total &middot; {activeCount} active
+            {incidents.length} {t("incidents.total").toLowerCase()} &middot; {activeCount} {t("incidents.active").toLowerCase()}
           </p>
         </div>
         <button
@@ -57,18 +60,18 @@ export function IncidentsSidebar({ incidents, onClose }: Props): JSX.Element {
 
       <div className="border-b border-[#334155] px-4 py-3">
         <div className="grid grid-cols-3 gap-2">
-          <MetricCard label="Total" value={incidents.length.toString()} />
-          <MetricCard label="Active" value={activeCount.toString()} accent="#f59e0b" />
-          <MetricCard label="Resolved" value={resolvedCount.toString()} accent="#22c55e" />
+          <MetricCard label={t("incidents.total")} value={incidents.length.toString()} />
+          <MetricCard label={t("incidents.active")} value={activeCount.toString()} accent="#f59e0b" />
+          <MetricCard label={t("incidents.resolved")} value={resolvedCount.toString()} accent="#22c55e" />
           <div className="col-span-3">
-            <MetricCard label="Resolution Rate" value={`${resolutionRate}%`} />
+            <MetricCard label={t("incidents.resolutionRate")} value={`${resolutionRate}%`} />
           </div>
         </div>
       </div>
 
       <div className="border-b border-[#334155] px-4 py-3">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          By Status
+          {t("incidents.byStatus")}
         </h3>
         <div className="space-y-1.5">
           {statusEntries.map(([status, count]) => (
@@ -87,16 +90,18 @@ export function IncidentsSidebar({ incidents, onClose }: Props): JSX.Element {
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Recent Activity
+            {t("incidents.recentActivity")}
           </h3>
         </div>
         {recentIncidents.length === 0 ? (
-          <p className="px-4 text-xs text-slate-500">No incidents reported yet</p>
+          <p className="px-4 text-xs text-slate-500">{t("incidents.noIncidents")}</p>
         ) : (
           recentIncidents.map((inc) => (
-            <div
+            <button
               key={inc.id}
-              className="border-b border-[#334155]/50 px-4 py-2.5"
+              type="button"
+              onClick={() => onSelectIncident?.(inc)}
+              className="w-full border-b border-[#334155]/50 px-4 py-2.5 text-left transition-colors hover:bg-[#334155]/40"
             >
               <div className="flex items-start gap-2">
                 <span
@@ -116,12 +121,12 @@ export function IncidentsSidebar({ incidents, onClose }: Props): JSX.Element {
                       {inc.status}
                     </span>
                     <span className="text-[10px] text-slate-500">
-                      {formatRelativeTime(inc.updated_at)}
+                      {formatRelativeTime(inc.updated_at, t, locale)}
                     </span>
                   </div>
                 </div>
               </div>
-            </div>
+            </button>
           ))
         )}
       </div>
@@ -148,15 +153,15 @@ function MetricCard({
   )
 }
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, t: (key: string) => string, locale: "en" | "tl"): string {
   const now = Date.now()
   const then = new Date(dateStr).getTime()
   const diff = now - then
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 1) return t("incidents.justNow")
+  if (minutes < 60) return locale === "tl" ? `${minutes} ${t("incidents.minutesAgo")}` : `${minutes}${t("incidents.minutesAgo")}`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return locale === "tl" ? `${hours} ${t("incidents.hoursAgo")}` : `${hours}${t("incidents.hoursAgo")}`
   const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  return locale === "tl" ? `${days} ${t("incidents.daysAgo")}` : `${days}${t("incidents.daysAgo")}`
 }

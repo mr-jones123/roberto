@@ -1,6 +1,7 @@
 import type { JSX } from "react"
 import { scoreColor, formatPercent } from "../lib/colors"
 import type { City } from "../lib/types"
+import { useLocale } from "../lib/locale"
 
 type Props = {
   cities: City[]
@@ -9,16 +10,17 @@ type Props = {
 }
 
 export function CityRanking({ cities, selectedCityId, onSelectCity }: Props): JSX.Element {
+  const { t } = useLocale()
   const totalProjects = cities.reduce((sum, c) => sum + c.project_count, 0)
 
   return (
     <div className="flex h-full flex-col bg-[#1e293b] text-slate-50">
       <div className="border-b border-[#334155] px-4 py-3">
          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-           Coverage Rankings
-         </h2>
+           {t("ranking.title")}
+          </h2>
         <p className="mt-1 text-xs text-slate-500">
-          {cities.length} cities &middot; {totalProjects.toLocaleString()} projects
+          {cities.length} {t("common.cities")} &middot; {totalProjects.toLocaleString()} {t("projects.label")}
         </p>
       </div>
       <div className="flex-1 overflow-y-auto">

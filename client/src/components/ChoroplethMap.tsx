@@ -5,7 +5,13 @@ import type { ExpressionSpecification, GeoJSONFeature, GeoJSONSource } from "map
 import { formatPHP, scoreColor } from "../lib/colors"
 import { BUILDING_3D_COLOR, DEFAULT_CENTER, DEFAULT_ZOOM, HAZARD_COLORS, MAPBOX_TOKEN, MAP_STYLE, toLngLat } from "../lib/map-utils"
 import type { City, ClusterSelection, EvacCenterRow, IncidentRow, PendingConnection, Project } from "../lib/types"
-import { IncidentMapLayers, INCIDENT_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID } from "./IncidentMapLayers"
+import {
+  IncidentMapLayers,
+  INCIDENT_LAYER_ID,
+  EVAC_LAYER_ID,
+  PING_CLUSTER_LAYER_ID,
+  PING_SINGLE_LAYER_ID,
+} from "./IncidentMapLayers"
 import { LayerToggle } from "./LayerToggle"
 import { RouteOverlay } from "./RouteOverlay"
 
@@ -30,6 +36,7 @@ type Props = {
   routeFacilityName?: string | null
   focusLocation?: { lat: number; lng: number } | null
   userLocation?: { lat: number; lng: number } | null
+  focusIncident?: IncidentRow | null
   onClusterSelect?: (selection: ClusterSelection) => void
   onToggle3D?: () => void
   onToggleWater?: () => void
@@ -43,7 +50,7 @@ type PopupInfo =
 
 const INTERACTIVE_LAYERS = [
   "boundaries-fill", "clusters", "unclustered-project",
-  INCIDENT_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID,
+  INCIDENT_LAYER_ID, PING_SINGLE_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID,
 ]
 
 export function ChoroplethMap({
@@ -56,6 +63,7 @@ export function ChoroplethMap({
   evacCenters = [], showEvacCenters = false,
   routeFrom = null, routeTo = null, routeFacilityName = null,
   focusLocation = null, userLocation = null,
+  focusIncident = null,
   onClusterSelect = () => {},
   onToggle3D,
   onToggleWater,
@@ -121,6 +129,61 @@ export function ChoroplethMap({
     return () => cancelAnimationFrame(animationId)
   }, [pendingConnections])
 
+  useEffect(() => {
+    if (!showIncidents || incidents.length === 0) return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
+    let animationId: number
+    const animate = () => {
+      const phase = (Math.sin(Date.now() / 380) + 1) / 2
+      const unresolvedRadius = 8 + phase * 2.8
+      const unresolvedOpacity = 0.64 + phase * 0.22
+      const resolvedRadius = 10.5
+      const resolvedOpacity = 0.96
+      const pingRadius = 8 + phase * 3.4
+      const pingStroke = 1.8 + phase * 1.2
+
+      if (map.getLayer(INCIDENT_LAYER_ID)) {
+        map.setPaintProperty(INCIDENT_LAYER_ID, "circle-radius", [
+          "case",
+          ["==", ["get", "status"], "RESOLVED"],
+          resolvedRadius,
+          unresolvedRadius,
+        ])
+        map.setPaintProperty(INCIDENT_LAYER_ID, "circle-opacity", [
+          "case",
+          ["==", ["get", "status"], "RESOLVED"],
+          resolvedOpacity,
+          unresolvedOpacity,
+        ])
+      }
+
+      if (map.getLayer(PING_SINGLE_LAYER_ID)) {
+        map.setPaintProperty(PING_SINGLE_LAYER_ID, "circle-radius", pingRadius)
+        map.setPaintProperty(PING_SINGLE_LAYER_ID, "circle-stroke-width", pingStroke)
+        map.setPaintProperty(PING_SINGLE_LAYER_ID, "circle-opacity", unresolvedOpacity)
+      }
+
+      if (map.getLayer(PING_CLUSTER_LAYER_ID)) {
+        map.setPaintProperty(PING_CLUSTER_LAYER_ID, "circle-radius", [
+          "step",
+          ["get", "count"],
+          14 + phase * 2,
+          5,
+          18 + phase * 2.5,
+          10,
+          22 + phase * 3,
+        ])
+      }
+
+      animationId = requestAnimationFrame(animate)
+    }
+
+    animate()
+    return () => cancelAnimationFrame(animationId)
+  }, [showIncidents, incidents.length])
+
   const handleClick = useCallback((event: MapMouseEvent) => {
     const feature = (event.features as GeoJSONFeature[] | undefined)?.[0]
     if (!feature?.layer) {
@@ -163,7 +226,7 @@ export function ChoroplethMap({
       return
     }
 
-    if (layerId === INCIDENT_LAYER_ID) {
+    if (layerId === INCIDENT_LAYER_ID || layerId === PING_SINGLE_LAYER_ID) {
       const id = feature.properties?.id
       if (typeof id !== "string") return
       const incident = incidents.find((inc) => inc.id === id)
@@ -200,6 +263,14 @@ export function ChoroplethMap({
     if (!focusLocation) return
     mapRef.current?.flyTo({ center: toLngLat(focusLocation.lat, focusLocation.lng), zoom: 15, duration: 1200 })
   }, [focusLocation])
+
+  useEffect(() => {
+    if (!focusIncident) return
+    const incident = incidents.find((inc) => inc.id === focusIncident.id) ?? focusIncident
+    const [lng, lat] = toLngLat(incident.latitude, incident.longitude)
+    mapRef.current?.flyTo({ center: [lng, lat], zoom: 16, duration: 1000 })
+    setPopupInfo({ type: "incident", lng, lat, incident })
+  }, [focusIncident, incidents])
 
   const [mapLoaded, setMapLoaded] = useState(false)
 
@@ -490,7 +561,7 @@ const STATUS_LABEL_BG: Record<string, React.CSSProperties> = {
 
 const INCIDENT_COLORS: Record<string, string> = {
   PING: "#ef4444", VERIFIED: "#3b82f6", PRIORITIZED: "#f97316",
-  ASSIGNED: "#a855f7", RESOLVED: "#22c55e",
+  ASSIGNED: "#a855f7", RESOLVED: "#4ade80",
 }
 
 const EVAC_STATUS_LABELS: Record<string, { bg: string; fg: string }> = {

@@ -1,6 +1,7 @@
 import { useState, type JSX } from "react"
 import { fetchAnalysis } from "../lib/api"
 import type { AnalysisResponse } from "../lib/types"
+import { useLocale } from "../lib/locale"
 
 const STORAGE_KEY = "roberto-gemini-key"
 
@@ -9,6 +10,7 @@ type Props = {
 }
 
 export function AIAnalysis({ cityId }: Props): JSX.Element {
+  const { t } = useLocale()
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY) ?? "")
   const [result, setResult] = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -27,7 +29,7 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
     setLoading(true)
     fetchAnalysis(cityId, apiKey.trim())
       .then(setResult)
-      .catch(() => setResult({ analysis: null, error: "Request failed" }))
+      .catch(() => setResult({ analysis: null, error: t("ai.requestFailed") }))
       .finally(() => setLoading(false))
   }
 
@@ -54,7 +56,7 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
           onClick={() => setResult(null)}
           className="text-xs text-slate-500 hover:text-slate-300"
         >
-          Try again
+          {t("ai.tryAgain")}
         </button>
       </div>
     )
@@ -67,7 +69,7 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
           type="password"
           value={apiKey}
           onChange={(e) => saveKey(e.target.value)}
-          placeholder="Gemini API key"
+          placeholder={t("ai.placeholder")}
           className="flex-1 rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/50"
         />
         <button
@@ -75,11 +77,11 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
           disabled={loading || apiKey.trim() === ""}
           className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-40"
         >
-          {loading ? "..." : "Analyze"}
+          {loading ? "..." : t("ai.analyze")}
         </button>
       </div>
       <p className="text-[10px] text-slate-600">
-        Get a key at{" "}
+        {t("ai.keyHelp")} {" "}
         <a
           href="https://aistudio.google.com/apikey"
           target="_blank"
@@ -88,7 +90,7 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
         >
           aistudio.google.com
         </a>
-        {" "}&middot; stored locally only
+        {" "}&middot; {t("ai.storedLocally")}
       </p>
     </div>
   )

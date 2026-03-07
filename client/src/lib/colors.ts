@@ -14,6 +14,14 @@ export function scoreLabel(score: number): string {
   return "Excellent"
 }
 
+export function scoreLabelKey(score: number): string {
+  if (score < 0.3) return "score.critical"
+  if (score < 0.5) return "score.poor"
+  if (score < 0.7) return "score.moderate"
+  if (score < 0.85) return "score.good"
+  return "score.excellent"
+}
+
 export function formatPHP(amount: number): string {
   return `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }

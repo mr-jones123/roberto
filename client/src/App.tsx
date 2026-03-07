@@ -17,7 +17,8 @@ import { useCity } from "./hooks/useCity"
 import { useAuth } from "./hooks/useAuth"
 import { useIncidentStream } from "./hooks/useIncidentStream"
 import { fetchEvacCenters } from "./lib/api"
-import type { ActiveFilter, ClusterSelection, EvacCenterRow, PendingConnection } from "./lib/types"
+import type { ActiveFilter, ClusterSelection, EvacCenterRow, IncidentRow, PendingConnection } from "./lib/types"
+import { useLocale } from "./lib/locale"
 
 type RouteTarget = {
   from: { lat: number; lng: number }
@@ -27,6 +28,7 @@ type RouteTarget = {
 
 function App(): JSX.Element {
   const { cities, boundaries, hazardZones, allProjects, loading, error } = useCities()
+  const { t, locale, setLocale } = useLocale()
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null)
   const [showMethodology, setShowMethodology] = useState(false)
   const [showHazard, setShowHazard] = useState(false)
@@ -45,6 +47,7 @@ function App(): JSX.Element {
   const [evacCenters, setEvacCenters] = useState<EvacCenterRow[]>([])
   const [routeTarget, setRouteTarget] = useState<RouteTarget | null>(null)
   const [focusLocation, setFocusLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [focusIncident, setFocusIncident] = useState<IncidentRow | null>(null)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [clusterSelection, setClusterSelection] = useState<ClusterSelection | null>(null)
   const [activeFilter, setActiveFilter] = useState<ActiveFilter | null>("coverage")
@@ -70,6 +73,7 @@ function App(): JSX.Element {
     if (!incidentMode) {
       setRouteTarget(null)
       setClusterSelection(null)
+      setFocusIncident(null)
     }
   }, [incidentMode])
 
@@ -97,13 +101,14 @@ function App(): JSX.Element {
   const showCoverageOverlay = isReporterIncidentView
     ? reporterFloodContext
     : showCoverage
+  const localeToggleLabel = locale === "en" ? "🇵🇭 Filipino" : "🇺🇸 English"
 
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0f172a] text-slate-50">
         <div className="text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-blue-500 mx-auto" />
-          <p className="text-slate-400">Loading Roberto...</p>
+          <p className="text-slate-400">{t("app.loading")}</p>
         </div>
       </div>
     )
@@ -113,7 +118,7 @@ function App(): JSX.Element {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0f172a] text-slate-50">
         <div className="text-center">
-          <p className="text-red-400 mb-2">Failed to load data</p>
+          <p className="text-red-400 mb-2">{t("app.error")}</p>
           <p className="text-sm text-slate-500">{error}</p>
         </div>
       </div>
@@ -167,8 +172,8 @@ function App(): JSX.Element {
     <div className="flex h-screen flex-col bg-[#0f172a]">
       <header className="flex items-center justify-between border-b border-[#334155] bg-[#1e293b] px-4 py-2">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-slate-50">Roberto</h1>
-          <span className="text-xs text-slate-500">Metro Manila Flood Coverage</span>
+          <h1 className="text-lg font-bold text-slate-50">{t("app.title")}</h1>
+          <span className="text-xs text-slate-500">{t("app.subtitle")}</span>
         </div>
         <div className="flex items-center gap-2">
           {incidentMode ? (
@@ -177,18 +182,24 @@ function App(): JSX.Element {
                 onClick={() => setIncidentMode(false)}
                 className="rounded-lg border border-[#334155] px-2.5 py-1 text-xs font-medium text-slate-400 transition-colors hover:bg-[#334155] hover:text-slate-200"
               >
-                Back to Analytics
+                {t("nav.backToAnalytics")}
               </button>
             </>
           ) : (
             <>
-              <LayerToggle label="Coverage" active={showCoverage} onToggle={() => toggleFilter("coverage", showCoverage, setShowCoverage)} color="#64748b" />
-              <LayerToggle label="Hazard" active={showHazard} onToggle={() => toggleFilter("hazard", showHazard, setShowHazard)} color="#3b82f6" />
-              <LayerToggle label="Projects" active={showProjects} onToggle={() => toggleFilter("projects", showProjects, setShowProjects)} color="#22c55e" />
-              <LayerToggle label="Incidents" active={showIncidents} onToggle={() => toggleFilter("incidents", showIncidents, setShowIncidents)} color="#ef4444" data-testid="toggle-incidents" />
-              <LayerToggle label="Evac Centers" active={showEvacCenters} onToggle={() => toggleFilter("evac_centers", showEvacCenters, setShowEvacCenters)} color="#10b981" data-testid="toggle-evac-centers" />
+              <LayerToggle label={t("nav.coverage")} active={showCoverage} onToggle={() => toggleFilter("coverage", showCoverage, setShowCoverage)} color="#64748b" />
+              <LayerToggle label={t("nav.hazard")} active={showHazard} onToggle={() => toggleFilter("hazard", showHazard, setShowHazard)} color="#3b82f6" />
+              <LayerToggle label={t("nav.projects")} active={showProjects} onToggle={() => toggleFilter("projects", showProjects, setShowProjects)} color="#22c55e" />
+              <LayerToggle label={t("nav.incidents")} active={showIncidents} onToggle={() => toggleFilter("incidents", showIncidents, setShowIncidents)} color="#ef4444" data-testid="toggle-incidents" />
+              <LayerToggle label={t("nav.evacCenters")} active={showEvacCenters} onToggle={() => toggleFilter("evac_centers", showEvacCenters, setShowEvacCenters)} color="#10b981" data-testid="toggle-evac-centers" />
             </>
           )}
+          <button
+            onClick={() => setLocale(locale === "en" ? "tl" : "en")}
+            className="rounded-lg border border-[#334155] px-2.5 py-1 text-xs font-medium text-slate-300 transition-colors hover:bg-[#334155]"
+          >
+            {localeToggleLabel}
+          </button>
           <button
             onClick={() => setIncidentMode((v) => !v)}
             className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
@@ -198,14 +209,14 @@ function App(): JSX.Element {
             }`}
           >
             <span className={`h-2 w-2 rounded-full ${incidentMode ? "bg-amber-400" : "bg-slate-600"}`} />
-            Incident Command
+            {t("nav.incidentCommand")}
           </button>
           {!incidentMode && (
             <button
               onClick={() => setShowMethodology(true)}
               className="rounded-lg px-3 py-1.5 text-sm text-slate-400 transition-colors hover:bg-[#334155] hover:text-slate-200"
             >
-              Methodology
+              {t("nav.methodology")}
             </button>
           )}
         </div>
@@ -239,6 +250,7 @@ function App(): JSX.Element {
             routeTo={routeTarget?.to ?? null}
             routeFacilityName={routeTarget?.name ?? null}
             focusLocation={focusLocation}
+            focusIncident={focusIncident}
             userLocation={userLocation}
             onClusterSelect={setClusterSelection}
             onToggle3D={() => setShow3D((v) => !v)}
@@ -292,6 +304,10 @@ function App(): JSX.Element {
               panel = (
                 <IncidentsSidebar
                   incidents={incidents}
+                  onSelectIncident={(incident) => {
+                    setFocusIncident({ ...incident })
+                    setFocusLocation({ lat: incident.latitude, lng: incident.longitude })
+                  }}
                   onClose={() => { setShowIncidents(false); setActiveFilter(null) }}
                 />
               )
@@ -315,7 +331,7 @@ function App(): JSX.Element {
       </div>
 
       <footer className="border-t border-[#334155] bg-[#1e293b] px-4 py-1.5 text-center text-[11px] text-slate-500">
-        Flood hazard data &copy; NOAH (ODbL 1.0) | DPWH data via BetterGov.ph (CC0) | City boundaries via OCHA
+        {t("app.footer")}
       </footer>
 
       {showMethodology && <Methodology onClose={() => setShowMethodology(false)} />}

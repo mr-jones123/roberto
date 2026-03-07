@@ -1,5 +1,6 @@
 import type { JSX } from "react"
 import type { EvacCenterRow } from "../lib/types"
+import { useLocale } from "../lib/locale"
 
 type Props = {
   evacCenters: EvacCenterRow[]
@@ -21,6 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element {
+  const { t } = useLocale()
   const statusCounts: Record<string, number> = { open: 0, full: 0, closed: 0 }
   const typeCounts: Record<string, number> = {}
   let totalCapacity = 0
@@ -45,15 +47,31 @@ export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element
     return b.current_load - a.current_load
   })
 
+  const typeLabel = (type: string): string => {
+    if (type === "evacuation_center") return t("evac.evacuationCenter")
+    if (type === "school") return t("evac.school")
+    if (type === "hospital") return t("evac.hospital")
+    if (type === "fire_station") return t("evac.fireStation")
+    if (type === "police_station") return t("evac.policeStation")
+    return TYPE_LABELS[type] ?? type
+  }
+
+  const statusLabel = (status: string): string => {
+    if (status === "open") return t("status.open")
+    if (status === "full") return t("status.full")
+    if (status === "closed") return t("status.closed")
+    return status
+  }
+
   return (
     <div className="flex h-full flex-col bg-[#1e293b] text-slate-50">
       <div className="flex items-center justify-between border-b border-[#334155] px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-            Evacuation Centers
+            {t("evac.title")}
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            {evacCenters.length} centers &middot; {statusCounts.open} open
+            {evacCenters.length} {t("common.centers")} &middot; {statusCounts.open} {t("status.open")}
           </p>
         </div>
         <button
@@ -66,10 +84,10 @@ export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element
 
       <div className="border-b border-[#334155] px-4 py-3">
         <div className="grid grid-cols-2 gap-2">
-          <MetricCard label="Total Capacity" value={totalCapacity.toLocaleString()} />
-          <MetricCard label="Current Load" value={totalLoad.toLocaleString()} />
+          <MetricCard label={t("evac.totalCapacity")} value={totalCapacity.toLocaleString()} />
+          <MetricCard label={t("evac.currentLoad")} value={totalLoad.toLocaleString()} />
           <div className="col-span-2 rounded-lg bg-[#0f172a] px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">Occupancy Rate</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500">{t("evac.occupancyRate")}</p>
             <div className="mt-1 flex items-center gap-2">
               <div className="flex-1 h-2 rounded-full bg-[#1e293b] overflow-hidden">
                 <div
@@ -91,7 +109,7 @@ export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element
 
       <div className="border-b border-[#334155] px-4 py-3">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Availability
+          {t("evac.availability")}
         </h3>
         <div className="space-y-1.5">
           {statusEntries.map(([status, count]) => (
@@ -100,19 +118,19 @@ export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element
                 className="h-2 w-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: STATUS_COLORS[status] ?? "#64748b" }}
               />
-              <span className="flex-1 text-xs text-slate-400 capitalize">{status}</span>
+              <span className="flex-1 text-xs text-slate-400 capitalize">{statusLabel(status)}</span>
               <span className="text-xs font-mono text-slate-300">{count}</span>
             </div>
           ))}
         </div>
 
         <h3 className="mt-3 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          By Type
+          {t("evac.byType")}
         </h3>
         <div className="space-y-1.5">
           {typeEntries.map(([type, count]) => (
             <div key={type} className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">{TYPE_LABELS[type] ?? type}</span>
+              <span className="text-xs text-slate-400">{typeLabel(type)}</span>
               <span className="text-xs font-mono text-slate-300">{count}</span>
             </div>
           ))}
@@ -122,7 +140,7 @@ export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            All Centers
+            {t("evac.allCenters")}
           </h3>
         </div>
         {sortedCenters.map((center) => (
@@ -139,7 +157,7 @@ export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element
                 <p className="text-sm text-slate-200 truncate">{center.name}</p>
                 <div className="mt-0.5 flex items-center gap-2">
                   <span className="text-[10px] text-slate-500">
-                    {TYPE_LABELS[center.type] ?? center.type}
+                    {typeLabel(center.type)}
                   </span>
                   {center.capacity != null && (
                     <span className="text-[10px] text-slate-500">
@@ -155,7 +173,7 @@ export function EvacCentersSidebar({ evacCenters, onClose }: Props): JSX.Element
                   color: STATUS_COLORS[center.status] ?? "#64748b",
                 }}
               >
-                {center.status}
+                {statusLabel(center.status)}
               </span>
             </div>
           </div>
