@@ -1,5 +1,6 @@
 import {
   ACCESS_ROLE,
+  CHAT_ENDPOINTS,
   HTTP_METHOD,
   INCIDENT_ENDPOINTS,
   INCIDENT_LIFECYCLE_TRANSITIONS,
@@ -24,7 +25,15 @@ const REQUIRED_ENDPOINT_PATHS = [
   "/api/incidents/:id",
   "/api/incidents/:id/events",
   "/api/evac-centers/nearby",
-  "/api/events"
+  "/api/events",
+  "/api/nodes/nearby",
+  "/api/nodes",
+  "/api/nodes/:id",
+  "/api/invites",
+  "/api/invites/:id/respond",
+  "/api/invites/:id/cancel",
+  "/api/conversations",
+  "/api/conversations/:id/messages"
 ] as const;
 
 const EXPECTED_TRANSITIONS: Readonly<Record<IncidentTransitionSource, readonly IncidentStatus[]>> = {
@@ -64,13 +73,14 @@ const assert = (condition: boolean, message: string): void => {
 };
 
 const validateEndpoints = (): void => {
-  assert(INCIDENT_ENDPOINTS.length > 0, "Contract must define endpoints.");
+  const allEndpoints = [...INCIDENT_ENDPOINTS, ...CHAT_ENDPOINTS];
+  assert(allEndpoints.length > 0, "Contract must define endpoints.");
 
   const endpointIds = new Set<string>();
   const endpointPaths = new Set<string>();
   const moduleCoverage = new Set<string>();
 
-  for (const endpoint of INCIDENT_ENDPOINTS) {
+  for (const endpoint of allEndpoints) {
     assert(endpoint.id.trim().length > 0, "Endpoint must define a non-empty id.");
     assert(!endpointIds.has(endpoint.id), `Endpoint id must be unique: ${endpoint.id}`);
     endpointIds.add(endpoint.id);
@@ -132,7 +142,17 @@ const validateEndpoints = (): void => {
     "GET /api/incidents/:id",
     "GET /api/incidents/:id/events",
     "GET /api/evac-centers/nearby",
-    "GET /api/events"
+    "GET /api/events",
+    "GET /api/nodes/nearby",
+    "POST /api/nodes",
+    "GET /api/nodes/:id",
+    "POST /api/invites",
+    "GET /api/invites",
+    "PATCH /api/invites/:id/respond",
+    "PATCH /api/invites/:id/cancel",
+    "GET /api/conversations",
+    "GET /api/conversations/:id/messages",
+    "POST /api/conversations/:id/messages"
   ] as const;
 
   for (const required of requiredMethodPathPairs) {
@@ -149,7 +169,7 @@ const validateEndpoints = (): void => {
   }
 
   for (const path of REQUIRED_ENDPOINT_PATHS) {
-    const found = INCIDENT_ENDPOINTS.some((endpoint) => endpoint.path === path);
+    const found = allEndpoints.some((endpoint) => endpoint.path === path);
     assert(found, `Required endpoint path is missing from contract: ${path}`);
   }
 };
@@ -192,10 +212,11 @@ const run = (): void => {
   validateEndpoints();
   validateLifecycle();
 
+  const allEndpoints = [...INCIDENT_ENDPOINTS, ...CHAT_ENDPOINTS];
   console.log(
     [
       "Incident command contract validation passed.",
-      `- Endpoints: ${INCIDENT_ENDPOINTS.length}`,
+      `- Endpoints: ${allEndpoints.length}`,
       `- Roles: ${Object.values(INCIDENT_ROLE).join(", ")}`,
       `- Modules: ${Object.values(INCIDENT_MODULE).join(", ")}`,
       `- Lifecycle source states: ${Object.keys(INCIDENT_LIFECYCLE_TRANSITIONS).length}`

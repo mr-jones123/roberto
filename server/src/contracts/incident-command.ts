@@ -3,7 +3,9 @@ export const INCIDENT_MODULE = {
   INCIDENTS: "incidents",
   DISPATCH: "dispatch",
   EVAC_CENTERS: "evac-centers",
-  REALTIME: "realtime"
+  REALTIME: "realtime",
+  NODES: "nodes",
+  CHAT: "chat"
 } as const;
 
 export type IncidentModule = (typeof INCIDENT_MODULE)[keyof typeof INCIDENT_MODULE];
@@ -250,12 +252,141 @@ export const INCIDENT_ENDPOINTS = [
   }
 ] as const satisfies readonly EndpointContract[];
 
+export const CHAT_ENDPOINTS = [
+  {
+    id: "nodes.nearby",
+    module: INCIDENT_MODULE.NODES,
+    method: HTTP_METHOD.GET,
+    path: "/api/nodes/nearby",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [200, 400, 401],
+    description: "Find nearby help nodes by latitude/longitude.",
+    queryParams: {
+      required: ["lat", "lng"]
+    }
+  },
+  {
+    id: "nodes.create",
+    module: INCIDENT_MODULE.NODES,
+    method: HTTP_METHOD.POST,
+    path: "/api/nodes",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [201, 400, 401],
+    description: "Create or register a help node.",
+    requestBody: {
+      requiredFields: ["latitude", "longitude"]
+    }
+  },
+  {
+    id: "nodes.get",
+    module: INCIDENT_MODULE.NODES,
+    method: HTTP_METHOD.GET,
+    path: "/api/nodes/:id",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [200, 401, 404],
+    description: "Get help node details by ID."
+  },
+  {
+    id: "invites.create",
+    module: INCIDENT_MODULE.CHAT,
+    method: HTTP_METHOD.POST,
+    path: "/api/invites",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [201, 400, 401],
+    description: "Create an invite to connect with another node.",
+    requestBody: {
+      requiredFields: ["recipient_node_id"]
+    }
+  },
+  {
+    id: "invites.list",
+    module: INCIDENT_MODULE.CHAT,
+    method: HTTP_METHOD.GET,
+    path: "/api/invites",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [200, 401],
+    description: "List invites (inbox and sent)."
+  },
+  {
+    id: "invites.respond",
+    module: INCIDENT_MODULE.CHAT,
+    method: HTTP_METHOD.PATCH,
+    path: "/api/invites/:id/respond",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [200, 400, 401, 404, 409],
+    description: "Accept or reject an invite.",
+    requestBody: {
+      requiredFields: ["action", "version"]
+    },
+    optimisticConcurrency: {
+      required: true,
+      versionField: "version",
+      conflictStatusCode: 409
+    }
+  },
+  {
+    id: "invites.cancel",
+    module: INCIDENT_MODULE.CHAT,
+    method: HTTP_METHOD.PATCH,
+    path: "/api/invites/:id/cancel",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [200, 400, 401, 404, 409],
+    description: "Cancel own invite.",
+    requestBody: {
+      requiredFields: ["version"]
+    },
+    optimisticConcurrency: {
+      required: true,
+      versionField: "version",
+      conflictStatusCode: 409
+    }
+  },
+  {
+    id: "conversations.list",
+    module: INCIDENT_MODULE.CHAT,
+    method: HTTP_METHOD.GET,
+    path: "/api/conversations",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [200, 401],
+    description: "List conversations."
+  },
+  {
+    id: "messages.list",
+    module: INCIDENT_MODULE.CHAT,
+    method: HTTP_METHOD.GET,
+    path: "/api/conversations/:id/messages",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [200, 401, 404],
+    description: "List messages in a conversation.",
+    queryParams: {
+      required: []
+    }
+  },
+  {
+    id: "messages.send",
+    module: INCIDENT_MODULE.CHAT,
+    method: HTTP_METHOD.POST,
+    path: "/api/conversations/:id/messages",
+    roles: [ACCESS_ROLE.REPORTER],
+    statusCodes: [201, 400, 401, 404],
+    description: "Send a message in a conversation.",
+    requestBody: {
+      requiredFields: ["client_msg_id", "body"]
+    }
+  }
+] as const satisfies readonly EndpointContract[];
+
 export const INCIDENT_ENDPOINTS_BY_MODULE = {
   [INCIDENT_MODULE.AUTH]: INCIDENT_ENDPOINTS.filter((endpoint) => endpoint.module === INCIDENT_MODULE.AUTH),
   [INCIDENT_MODULE.INCIDENTS]: INCIDENT_ENDPOINTS.filter((endpoint) => endpoint.module === INCIDENT_MODULE.INCIDENTS),
   [INCIDENT_MODULE.DISPATCH]: INCIDENT_ENDPOINTS.filter((endpoint) => endpoint.module === INCIDENT_MODULE.DISPATCH),
   [INCIDENT_MODULE.EVAC_CENTERS]: INCIDENT_ENDPOINTS.filter((endpoint) => endpoint.module === INCIDENT_MODULE.EVAC_CENTERS),
   [INCIDENT_MODULE.REALTIME]: INCIDENT_ENDPOINTS.filter((endpoint) => endpoint.module === INCIDENT_MODULE.REALTIME)
+} as const;
+
+export const CHAT_ENDPOINTS_BY_MODULE = {
+  [INCIDENT_MODULE.NODES]: CHAT_ENDPOINTS.filter((endpoint) => endpoint.module === INCIDENT_MODULE.NODES),
+  [INCIDENT_MODULE.CHAT]: CHAT_ENDPOINTS.filter((endpoint) => endpoint.module === INCIDENT_MODULE.CHAT)
 } as const;
 
 export const INCIDENT_LIFECYCLE_TRANSITIONS: Readonly<Record<IncidentTransitionSource, readonly IncidentStatus[]>> = {
