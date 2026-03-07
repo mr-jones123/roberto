@@ -4,7 +4,7 @@ import type { MapRef, MapMouseEvent } from "react-map-gl/mapbox"
 import type { ExpressionSpecification, GeoJSONFeature, GeoJSONSource } from "mapbox-gl"
 import { formatPHP, scoreColor } from "../lib/colors"
 import { BUILDING_3D_COLOR, DEFAULT_CENTER, DEFAULT_ZOOM, HAZARD_COLORS, MAPBOX_TOKEN, MAP_STYLE, toLngLat } from "../lib/map-utils"
-import type { City, ClusterSelection, EvacCenterRow, IncidentRow, Project } from "../lib/types"
+import type { City, ClusterSelection, EvacCenterRow, IncidentRow, PendingConnection, Project } from "../lib/types"
 import { IncidentMapLayers, INCIDENT_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID } from "./IncidentMapLayers"
 import { LayerToggle } from "./LayerToggle"
 import { RouteOverlay } from "./RouteOverlay"
@@ -33,6 +33,7 @@ type Props = {
   onClusterSelect?: (selection: ClusterSelection) => void
   onToggle3D?: () => void
   onToggleWater?: () => void
+  pendingConnections?: PendingConnection[]
 }
 
 type PopupInfo =
@@ -58,6 +59,7 @@ export function ChoroplethMap({
   onClusterSelect = () => {},
   onToggle3D,
   onToggleWater,
+  pendingConnections = [],
 }: Props): JSX.Element | null {
   const mapRef = useRef<MapRef>(null)
   const [cursor, setCursor] = useState("auto")
@@ -85,6 +87,39 @@ export function ChoroplethMap({
     }
     return ["match", ["get", "city_norm"], ...pairs, "#334155"] as ExpressionSpecification
   }, [cities])
+
+  const connectionsGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: pendingConnections.map((conn, i) => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: [conn.from, conn.to],
+      },
+      properties: { id: `conn-${i}` },
+    })),
+  }), [pendingConnections])
+
+  useEffect(() => {
+    if (!pendingConnections.length) return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
+    let animationId: number
+    const animate = () => {
+      const t = Math.sin(Date.now() / 500)
+      const opacity = 0.3 + 0.7 * Math.abs(t)
+      const width = 2 + 2 * Math.abs(t)
+      if (map.getLayer("pending-connections-line")) {
+        map.setPaintProperty("pending-connections-line", "line-opacity", opacity)
+        map.setPaintProperty("pending-connections-line", "line-width", width)
+      }
+      animationId = requestAnimationFrame(animate)
+    }
+    animate()
+
+    return () => cancelAnimationFrame(animationId)
+  }, [pendingConnections])
 
   const handleClick = useCallback((event: MapMouseEvent) => {
     const feature = (event.features as GeoJSONFeature[] | undefined)?.[0]
@@ -410,6 +445,21 @@ export function ChoroplethMap({
         >
           <EvacPopupContent center={popupInfo.center} />
         </Popup>
+      )}
+
+      {pendingConnections.length > 0 && (
+        <Source id="pending-connections" type="geojson" data={connectionsGeoJSON}>
+          <Layer
+            id="pending-connections-line"
+            type="line"
+            paint={{
+              "line-color": "#3b82f6",
+              "line-width": 2,
+              "line-opacity": 0.7,
+              "line-dasharray": [2, 2],
+            }}
+          />
+        </Source>
       )}
     </Map>
     {showHazard && <HazardLegend />}

@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react"
 import type React from "react"
 import { createIncident, fetchCurrentWeather, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
-import type { EvacCenter, FacilityType, IncidentRow, WeatherCurrent } from "../../lib/types"
+import type { EvacCenter, FacilityType, IncidentRow, PendingConnection, WeatherCurrent } from "../../lib/types"
 import { broadcastIncidentUpdate, useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
 import { NodePanel } from "../chat/NodePanel"
@@ -19,6 +19,7 @@ type Props = {
   onToggleFloodContext: () => void
   showWeatherContext: boolean
   onToggleWeatherContext: () => void
+  onConnectionsChange?: (connections: PendingConnection[]) => void
 }
 
 type LocationAccessState = "idle" | "granted" | "denied" | "unavailable"
@@ -34,6 +35,7 @@ export function ReporterPanel({
   onToggleFloodContext,
   showWeatherContext,
   onToggleWeatherContext,
+  onConnectionsChange,
 }: Props): JSX.Element {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -407,7 +409,7 @@ export function ReporterPanel({
           <span className="font-medium">Connect</span>
           <span>{showConnect ? "\u25B2" : "\u25BC"}</span>
         </button>
-        {showConnect && <NodePanel token={token} userId={userId} />}
+        {showConnect && <NodePanel token={token} userId={userId} onConnectionsChange={onConnectionsChange} />}
       </div>
     </div>
   )

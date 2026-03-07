@@ -1,14 +1,20 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useChatStream } from "../../hooks/useChatStream"
 import {
   registerNode, fetchNearbyNodes, createInvite,
   respondToInvite, cancelInvite, sendMessage
 } from "../../lib/api"
-import type { HelpNodeRow, ConversationRow } from "../../lib/types"
+import type { HelpNodeRow, ConversationRow, PendingConnection } from "../../lib/types"
 
 type Tab = "node" | "nearby" | "invites" | "chat"
 
-export function NodePanel({ token, userId }: { token: string; userId: string }) {
+type NodePanelProps = {
+  token: string
+  userId: string
+  onConnectionsChange?: (connections: PendingConnection[]) => void
+}
+
+export function NodePanel({ token, userId, onConnectionsChange }: NodePanelProps) {
   const [tab, setTab] = useState<Tab>("node")
   const [myNode, setMyNode] = useState<HelpNodeRow | null>(null)
   const [nearbyNodes, setNearbyNodes] = useState<HelpNodeRow[]>([])
@@ -16,14 +22,36 @@ export function NodePanel({ token, userId }: { token: string; userId: string }) 
   const [msgInput, setMsgInput] = useState("")
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
-  const { invites, conversations, messages } = useChatStream(token)
+  const { invites, conversations, messages, addMessage } = useChatStream(token)
 
-  // On mount: register/get node (idempotent)
   useEffect(() => {
     registerNode(token, { latitude: 14.5995, longitude: 120.9842 })
       .then(r => setMyNode(r.node))
       .catch(() => {})
   }, [token])
+
+  const pendingConnections = useMemo(() => {
+    if (!myNode) return []
+    const allNodes = [myNode, ...nearbyNodes]
+    return invites
+      .filter(inv => inv.status === "pending")
+      .map(inv => {
+        const sender = allNodes.find(n => n.id === inv.sender_node_id)
+        const recipient = allNodes.find(n => n.id === inv.recipient_node_id)
+        if (sender && recipient) {
+          return {
+            from: [sender.longitude, sender.latitude] as [number, number],
+            to: [recipient.longitude, recipient.latitude] as [number, number],
+          }
+        }
+        return null
+      })
+      .filter((c): c is PendingConnection => c !== null)
+  }, [invites, myNode, nearbyNodes])
+
+  useEffect(() => {
+    onConnectionsChange?.(pendingConnections)
+  }, [pendingConnections, onConnectionsChange])
 
   const findNearby = () => {
     if (!myNode) return
@@ -59,7 +87,9 @@ export function NodePanel({ token, userId }: { token: string; userId: string }) 
     if (!selectedConv || !msgInput.trim()) return
     const body = msgInput.trim()
     setMsgInput("")
-    sendMessage(token, selectedConv.id, crypto.randomUUID(), body).catch(() => {})
+    sendMessage(token, selectedConv.id, crypto.randomUUID(), body)
+      .then((r) => addMessage(selectedConv.id, r.message))
+      .catch(() => {})
   }
 
   const tabs: { key: Tab; label: string }[] = [

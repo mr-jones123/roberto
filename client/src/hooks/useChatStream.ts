@@ -14,6 +14,7 @@ export type UseChatStreamResult = {
   messages: Record<string, MessageRow[]>
   loading: boolean
   error: string | null
+  addMessage: (conversationId: string, message: MessageRow) => void
 }
 
 function upsertInvite(list: ConnectionInviteRow[], invite: ConnectionInviteRow): ConnectionInviteRow[] {
@@ -45,6 +46,10 @@ function appendMessage(
   message: MessageRow,
 ): Record<string, MessageRow[]> {
   const existing = messages[conversationId] ?? []
+  // Dedup: skip if message with this ID already exists
+  if (existing.some((m) => m.id === message.id)) {
+    return messages
+  }
   return {
     ...messages,
     [conversationId]: [...existing, message],
@@ -207,5 +212,9 @@ export function useChatStream(token: string | null): UseChatStreamResult {
     }
   }, [token])
 
-  return { invites, conversations, messages, loading, error }
+  const addMessage = (conversationId: string, message: MessageRow) => {
+    setMessages((prev) => appendMessage(prev, conversationId, message))
+  }
+
+  return { invites, conversations, messages, loading, error, addMessage }
 }

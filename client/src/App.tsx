@@ -17,7 +17,7 @@ import { useCity } from "./hooks/useCity"
 import { useAuth } from "./hooks/useAuth"
 import { useIncidentStream } from "./hooks/useIncidentStream"
 import { fetchEvacCenters } from "./lib/api"
-import type { ActiveFilter, ClusterSelection, EvacCenterRow } from "./lib/types"
+import type { ActiveFilter, ClusterSelection, EvacCenterRow, PendingConnection } from "./lib/types"
 
 type RouteTarget = {
   from: { lat: number; lng: number }
@@ -48,6 +48,7 @@ function App(): JSX.Element {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [clusterSelection, setClusterSelection] = useState<ClusterSelection | null>(null)
   const [activeFilter, setActiveFilter] = useState<ActiveFilter | null>("coverage")
+  const [pendingConnections, setPendingConnections] = useState<PendingConnection[]>([])
 
   const toggleFilter = (filter: ActiveFilter, currentlyActive: boolean, setShow: React.Dispatch<React.SetStateAction<boolean>>) => {
     const next = !currentlyActive
@@ -138,6 +139,7 @@ function App(): JSX.Element {
           onToggleFloodContext={() => setReporterFloodContext((v) => !v)}
           showWeatherContext={reporterWeatherContext}
           onToggleWeatherContext={() => setReporterWeatherContext((v) => !v)}
+          onConnectionsChange={setPendingConnections}
         />
       )
     }
@@ -241,6 +243,7 @@ function App(): JSX.Element {
             onClusterSelect={setClusterSelection}
             onToggle3D={() => setShow3D((v) => !v)}
             onToggleWater={() => setShowWater((v) => !v)}
+            pendingConnections={pendingConnections}
           />
         </main>
 

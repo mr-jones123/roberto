@@ -199,3 +199,8 @@ export type ClusterSelection = {
 }
 
 export type ActiveFilter = "coverage" | "hazard" | "projects" | "incidents" | "evac_centers"
+
+export type PendingConnection = {
+  from: [number, number] // [lng, lat]
+  to: [number, number]   // [lng, lat]
+}
