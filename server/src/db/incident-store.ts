@@ -429,6 +429,20 @@ export class IncidentStore {
     return stmt.all({ nodeId, since }) as ConnectionInviteRow[];
   }
 
+  hasPendingInvite(nodeIdA: string, nodeIdB: string): boolean {
+    const stmt = this.db.prepare(`
+      SELECT 1 FROM connection_invites
+      WHERE status = 'pending'
+        AND (
+          (sender_node_id = @nodeIdA AND recipient_node_id = @nodeIdB)
+          OR
+          (sender_node_id = @nodeIdB AND recipient_node_id = @nodeIdA)
+        )
+      LIMIT 1
+    `);
+    return stmt.get({ nodeIdA, nodeIdB }) !== undefined;
+  }
+
   updateInviteStatus(
     id: string,
     status: InviteStatus,

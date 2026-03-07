@@ -10,6 +10,43 @@ import type { EventBus } from "../realtime/event-bus.js";
 const paramId = (params: Record<string, unknown>): string => params.id as string;
 const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
+const inviteRateLimit = new Map<string, { count: number; resetAt: number }>();
+const messageRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+const checkInviteRateLimit = (userId: string): boolean => {
+  const now = Date.now();
+  const entry = inviteRateLimit.get(userId);
+
+  if (!entry || entry.resetAt < now) {
+    inviteRateLimit.set(userId, { count: 1, resetAt: now + 60 * 60 * 1000 });
+    return true;
+  }
+
+  if (entry.count >= 10) {
+    return false;
+  }
+
+  entry.count += 1;
+  return true;
+};
+
+const checkMessageRateLimit = (userId: string): boolean => {
+  const now = Date.now();
+  const entry = messageRateLimit.get(userId);
+
+  if (!entry || entry.resetAt < now) {
+    messageRateLimit.set(userId, { count: 1, resetAt: now + 60 * 1000 });
+    return true;
+  }
+
+  if (entry.count >= 60) {
+    return false;
+  }
+
+  entry.count += 1;
+  return true;
+};
+
 const getCatchupSince = (value: unknown): string => {
   const fallback = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   if (typeof value !== "string" || value.trim() === "") {
@@ -62,6 +99,21 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
       const recipientNode = store.getHelpNode(recipient_node_id);
       if (!recipientNode) {
         res.status(404).json({ error: "Recipient node not found" });
+        return;
+      }
+
+      if (senderNode.user_id === recipientNode.user_id) {
+        res.status(400).json({ error: "Cannot invite your own node" });
+        return;
+      }
+
+      if (!checkInviteRateLimit(req.user!.id)) {
+        res.status(429).json({ error: "Too many invites. Try again later." });
+        return;
+      }
+
+      if (store.hasPendingInvite(senderNode.id, recipient_node_id)) {
+        res.status(409).json({ error: "A pending invite already exists between these nodes" });
         return;
       }
 
@@ -255,6 +307,12 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
     (req, res) => {
       const conversationId = paramId(req.params);
 
+      const conversation = store.getConversation(conversationId);
+      if (!conversation) {
+        res.status(404).json({ error: "Conversation not found" });
+        return;
+      }
+
       if (!store.isParticipant(conversationId, req.user!.id)) {
         res.status(403).json({ error: "You are not a participant of this conversation" });
         return;
@@ -275,8 +333,19 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
     (req, res) => {
       const conversationId = paramId(req.params);
 
+      const conversation = store.getConversation(conversationId);
+      if (!conversation) {
+        res.status(404).json({ error: "Conversation not found" });
+        return;
+      }
+
       if (!store.isParticipant(conversationId, req.user!.id)) {
         res.status(403).json({ error: "You are not a participant of this conversation" });
+        return;
+      }
+
+      if (!checkMessageRateLimit(req.user!.id)) {
+        res.status(429).json({ error: "Too many messages. Try again later." });
         return;
       }
 
@@ -289,6 +358,11 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
 
       if (typeof body !== "string" || body.trim() === "") {
         res.status(400).json({ error: "Missing or invalid field: body" });
+        return;
+      }
+
+      if (body.length > 2000) {
+        res.status(400).json({ error: "Message too long (max 2000 characters)" });
         return;
       }
 
