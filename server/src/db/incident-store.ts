@@ -99,6 +99,94 @@ export type UpsertEvacCenterInput = {
   status?: "open" | "full" | "closed";
 };
 
+// ---------------------------------------------------------------------------
+// Node Connection & Chat domain — Row types
+// ---------------------------------------------------------------------------
+
+export type HelpNodeStatus = "active" | "inactive";
+
+export type HelpNodeRow = {
+  id: string;
+  user_id: string;
+  latitude: number;
+  longitude: number;
+  status: HelpNodeStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InviteStatus = "pending" | "accepted" | "rejected" | "cancelled" | "expired";
+
+export type ConnectionInviteRow = {
+  id: string;
+  sender_node_id: string;
+  recipient_node_id: string;
+  status: InviteStatus;
+  version: number;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ConversationRow = {
+  id: string;
+  invite_id: string;
+  created_at: string;
+};
+
+export type ConversationParticipantRow = {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type MessageRow = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  client_msg_id: string;
+  body: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Node Connection & Chat domain — Input types
+// ---------------------------------------------------------------------------
+
+export type CreateHelpNodeInput = {
+  id: string;
+  user_id: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type CreateInviteInput = {
+  id: string;
+  sender_node_id: string;
+  recipient_node_id: string;
+  expires_at?: string;
+};
+
+export type CreateConversationInput = {
+  id: string;
+  invite_id: string;
+};
+
+export type AddParticipantInput = {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+};
+
+export type CreateMessageInput = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  client_msg_id: string;
+  body: string;
+};
+
 export class IncidentStore {
   private db: DatabaseType;
 
@@ -236,5 +324,171 @@ export class IncidentStore {
 
   close(): void {
     this.db.close();
+  }
+
+  createHelpNode(input: CreateHelpNodeInput): HelpNodeRow {
+    const stmt = this.db.prepare(`
+      INSERT INTO help_nodes (id, user_id, latitude, longitude)
+      VALUES (@id, @user_id, @latitude, @longitude)
+    `);
+    stmt.run(input);
+    return this.getHelpNode(input.id)!;
+  }
+
+  getHelpNode(id: string): HelpNodeRow | undefined {
+    const stmt = this.db.prepare("SELECT * FROM help_nodes WHERE id = ?");
+    return stmt.get(id) as HelpNodeRow | undefined;
+  }
+
+  listNearbyNodes(lat: number, lng: number, radiusKm: number): HelpNodeRow[] {
+    const KM_PER_DEG_LAT = 111;
+    const dLat = radiusKm / KM_PER_DEG_LAT;
+    const dLng = radiusKm / (KM_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180));
+
+    const stmt = this.db.prepare(`
+      SELECT * FROM help_nodes
+      WHERE latitude BETWEEN @minLat AND @maxLat
+        AND longitude BETWEEN @minLng AND @maxLng
+        AND status = 'active'
+      ORDER BY created_at DESC
+    `);
+    return stmt.all({
+      minLat: lat - dLat,
+      maxLat: lat + dLat,
+      minLng: lng - dLng,
+      maxLng: lng + dLng,
+    }) as HelpNodeRow[];
+  }
+
+  getUserNode(userId: string): HelpNodeRow | undefined {
+    const stmt = this.db.prepare("SELECT * FROM help_nodes WHERE user_id = ?");
+    return stmt.get(userId) as HelpNodeRow | undefined;
+  }
+
+  createInvite(input: CreateInviteInput): ConnectionInviteRow {
+    const stmt = this.db.prepare(`
+      INSERT INTO connection_invites (id, sender_node_id, recipient_node_id, expires_at)
+      VALUES (@id, @sender_node_id, @recipient_node_id, @expires_at)
+    `);
+    stmt.run({
+      id: input.id,
+      sender_node_id: input.sender_node_id,
+      recipient_node_id: input.recipient_node_id,
+      expires_at: input.expires_at ?? null,
+    });
+    return this.getInvite(input.id)!;
+  }
+
+  getInvite(id: string): ConnectionInviteRow | undefined {
+    const stmt = this.db.prepare("SELECT * FROM connection_invites WHERE id = ?");
+    return stmt.get(id) as ConnectionInviteRow | undefined;
+  }
+
+  listInvitesForNode(nodeId: string): ConnectionInviteRow[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM connection_invites
+      WHERE sender_node_id = @nodeId OR recipient_node_id = @nodeId
+      ORDER BY created_at DESC
+    `);
+    return stmt.all({ nodeId }) as ConnectionInviteRow[];
+  }
+
+  updateInviteStatus(
+    id: string,
+    status: InviteStatus,
+    expectedVersion: number
+  ): ConnectionInviteRow | null {
+    const stmt = this.db.prepare(`
+      UPDATE connection_invites
+      SET status = @status,
+          version = version + 1,
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      WHERE id = @id AND version = @expectedVersion
+    `);
+    const result = stmt.run({ id, status, expectedVersion });
+    if (result.changes === 0) return null;
+    return this.getInvite(id)!;
+  }
+
+  createConversation(input: CreateConversationInput): ConversationRow {
+    const stmt = this.db.prepare(`
+      INSERT INTO conversations (id, invite_id)
+      VALUES (@id, @invite_id)
+    `);
+    stmt.run(input);
+    return this.getConversation(input.id)!;
+  }
+
+  getConversation(id: string): ConversationRow | undefined {
+    const stmt = this.db.prepare("SELECT * FROM conversations WHERE id = ?");
+    return stmt.get(id) as ConversationRow | undefined;
+  }
+
+  addParticipant(input: AddParticipantInput): ConversationParticipantRow {
+    const stmt = this.db.prepare(`
+      INSERT INTO conversation_participants (id, conversation_id, user_id)
+      VALUES (@id, @conversation_id, @user_id)
+    `);
+    stmt.run(input);
+    const row = this.db.prepare("SELECT * FROM conversation_participants WHERE id = ?").get(input.id);
+    return row as ConversationParticipantRow;
+  }
+
+  isParticipant(conversationId: string, userId: string): boolean {
+    const stmt = this.db.prepare(
+      "SELECT 1 FROM conversation_participants WHERE conversation_id = @conversationId AND user_id = @userId"
+    );
+    return stmt.get({ conversationId, userId }) !== undefined;
+  }
+
+  listConversationsForUser(userId: string): ConversationRow[] {
+    const stmt = this.db.prepare(`
+      SELECT c.* FROM conversations c
+      JOIN conversation_participants cp ON cp.conversation_id = c.id
+      WHERE cp.user_id = ?
+      ORDER BY c.created_at DESC
+    `);
+    return stmt.all(userId) as ConversationRow[];
+  }
+
+  createMessage(input: CreateMessageInput): MessageRow {
+    const insertStmt = this.db.prepare(`
+      INSERT OR IGNORE INTO messages (id, conversation_id, sender_id, client_msg_id, body)
+      VALUES (@id, @conversation_id, @sender_id, @client_msg_id, @body)
+    `);
+    insertStmt.run(input);
+
+    const selectStmt = this.db.prepare(
+      "SELECT * FROM messages WHERE conversation_id = @conversation_id AND client_msg_id = @client_msg_id"
+    );
+    return selectStmt.get({
+      conversation_id: input.conversation_id,
+      client_msg_id: input.client_msg_id,
+    }) as MessageRow;
+  }
+
+  listMessages(
+    conversationId: string,
+    opts?: { before?: string; limit?: number }
+  ): MessageRow[] {
+    const limit = opts?.limit ?? 50;
+
+    if (opts?.before) {
+      const stmt = this.db.prepare(`
+        SELECT * FROM messages
+        WHERE conversation_id = @conversationId AND id < @before
+        ORDER BY id DESC
+        LIMIT @limit
+      `);
+      return stmt.all({ conversationId, before: opts.before, limit }) as MessageRow[];
+    }
+
+    const stmt = this.db.prepare(`
+      SELECT * FROM messages
+      WHERE conversation_id = @conversationId
+      ORDER BY id DESC
+      LIMIT @limit
+    `);
+    return stmt.all({ conversationId, limit }) as MessageRow[];
   }
 }
