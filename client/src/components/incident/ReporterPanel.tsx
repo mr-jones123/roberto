@@ -4,6 +4,7 @@ import { createIncident, fetchCurrentWeather, fetchIncidents, fetchNearestEvacCe
 import type { EvacCenter, FacilityType, IncidentRow, WeatherCurrent } from "../../lib/types"
 import { broadcastIncidentUpdate, useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
+import { NodePanel } from "../chat/NodePanel"
 
 type RoutePoint = { lat: number; lng: number }
 
@@ -47,6 +48,7 @@ export function ReporterPanel({
   const [weather, setWeather] = useState<WeatherCurrent | null>(null)
   const [myPings, setMyPings] = useState<IncidentRow[]>([])
   const [evacCache, setEvacCache] = useState<Record<string, EvacCenter[]>>({})
+  const [showConnect, setShowConnect] = useState(false)
 
   const { incidents: streamIncidents } = useIncidentStream()
 
@@ -395,6 +397,17 @@ export function ReporterPanel({
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="border-t border-[#334155] flex-shrink-0">
+        <button
+          onClick={() => setShowConnect(v => !v)}
+          className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-400 hover:bg-[#1e293b] transition-colors"
+        >
+          <span className="font-medium">Connect</span>
+          <span>{showConnect ? "\u25B2" : "\u25BC"}</span>
+        </button>
+        {showConnect && <NodePanel token={token} userId={userId} />}
       </div>
     </div>
   )
