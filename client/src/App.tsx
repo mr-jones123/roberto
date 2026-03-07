@@ -3,6 +3,10 @@ import { ChoroplethMap } from "./components/ChoroplethMap"
 import { LayerToggle } from "./components/LayerToggle"
 import { CityDetail } from "./components/CityDetail"
 import { CityRanking } from "./components/CityRanking"
+import { HazardSidebar } from "./components/HazardSidebar"
+import { ProjectsSidebar } from "./components/ProjectsSidebar"
+import { IncidentsSidebar } from "./components/IncidentsSidebar"
+import { EvacCentersSidebar } from "./components/EvacCentersSidebar"
 import { Methodology } from "./components/Methodology"
 import { CoordinatorPanel } from "./components/incident/CoordinatorPanel"
 import { LoginForm } from "./components/incident/LoginForm"
@@ -13,7 +17,7 @@ import { useCity } from "./hooks/useCity"
 import { useAuth } from "./hooks/useAuth"
 import { useIncidentStream } from "./hooks/useIncidentStream"
 import { fetchEvacCenters } from "./lib/api"
-import type { ClusterSelection, EvacCenterRow } from "./lib/types"
+import type { ActiveFilter, ClusterSelection, EvacCenterRow } from "./lib/types"
 
 type RouteTarget = {
   from: { lat: number; lng: number }
@@ -43,6 +47,17 @@ function App(): JSX.Element {
   const [focusLocation, setFocusLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [clusterSelection, setClusterSelection] = useState<ClusterSelection | null>(null)
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter | null>("coverage")
+
+  const toggleFilter = (filter: ActiveFilter, currentlyActive: boolean, setShow: React.Dispatch<React.SetStateAction<boolean>>) => {
+    const next = !currentlyActive
+    setShow(next)
+    if (next) {
+      setActiveFilter(filter)
+    } else if (activeFilter === filter) {
+      setActiveFilter(null)
+    }
+  }
 
   useEffect(() => {
     fetchEvacCenters()
@@ -62,6 +77,9 @@ function App(): JSX.Element {
       setSelectedCityId(null)
       setShowHazard(false)
       setShowProjects(false)
+      setShowIncidents(false)
+      setShowEvacCenters(false)
+      setActiveFilter(null)
     }
   }, [incidentMode])
 
@@ -101,17 +119,7 @@ function App(): JSX.Element {
     )
   }
 
-  const renderSidebar = () => {
-    if (!incidentMode) {
-      return (
-        <CityRanking
-          cities={cities}
-          selectedCityId={selectedCityId}
-          onSelectCity={setSelectedCityId}
-        />
-      )
-    }
-
+  const renderIncidentSidebar = () => {
     if (!auth.isAuthenticated) {
       return <LoginForm onLogin={auth.login} />
     }
@@ -172,11 +180,11 @@ function App(): JSX.Element {
             </>
           ) : (
             <>
-              <LayerToggle label="Coverage" active={showCoverage} onToggle={() => setShowCoverage((v) => !v)} color="#64748b" />
-              <LayerToggle label="Hazard" active={showHazard} onToggle={() => setShowHazard((v) => !v)} color="#3b82f6" />
-              <LayerToggle label="Projects" active={showProjects} onToggle={() => setShowProjects((v) => !v)} color="#22c55e" />
-              <LayerToggle label="Incidents" active={showIncidents} onToggle={() => setShowIncidents((v) => !v)} color="#ef4444" data-testid="toggle-incidents" />
-              <LayerToggle label="Evac Centers" active={showEvacCenters} onToggle={() => setShowEvacCenters((v) => !v)} color="#10b981" data-testid="toggle-evac-centers" />
+              <LayerToggle label="Coverage" active={showCoverage} onToggle={() => toggleFilter("coverage", showCoverage, setShowCoverage)} color="#64748b" />
+              <LayerToggle label="Hazard" active={showHazard} onToggle={() => toggleFilter("hazard", showHazard, setShowHazard)} color="#3b82f6" />
+              <LayerToggle label="Projects" active={showProjects} onToggle={() => toggleFilter("projects", showProjects, setShowProjects)} color="#22c55e" />
+              <LayerToggle label="Incidents" active={showIncidents} onToggle={() => toggleFilter("incidents", showIncidents, setShowIncidents)} color="#ef4444" data-testid="toggle-incidents" />
+              <LayerToggle label="Evac Centers" active={showEvacCenters} onToggle={() => toggleFilter("evac_centers", showEvacCenters, setShowEvacCenters)} color="#10b981" data-testid="toggle-evac-centers" />
             </>
           )}
           <button
@@ -202,9 +210,11 @@ function App(): JSX.Element {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-72 flex-shrink-0 border-r border-[#334155] overflow-hidden">
-          {renderSidebar()}
-        </aside>
+        {incidentMode && (
+          <aside className="w-72 flex-shrink-0 border-r border-[#334155] overflow-hidden">
+            {renderIncidentSidebar()}
+          </aside>
+        )}
 
         <main className="relative flex-1">
           <ChoroplethMap
@@ -234,15 +244,71 @@ function App(): JSX.Element {
           />
         </main>
 
-        {!incidentMode && selectedCityId && detail && !detailLoading && (
-          <aside className="w-96 flex-shrink-0 border-l border-[#334155] overflow-hidden">
-            <CityDetail
-              city={detail.city}
-              projects={detail.projects}
-              onClose={() => setSelectedCityId(null)}
-            />
-          </aside>
-        )}
+        {!incidentMode && (() => {
+          let panel: JSX.Element | null = null
+
+          switch (activeFilter) {
+            case "coverage":
+              if (selectedCityId && detail && !detailLoading) {
+                panel = (
+                  <CityDetail
+                    city={detail.city}
+                    projects={detail.projects}
+                    onClose={() => setSelectedCityId(null)}
+                  />
+                )
+              } else {
+                panel = (
+                  <CityRanking
+                    cities={cities}
+                    selectedCityId={selectedCityId}
+                    onSelectCity={setSelectedCityId}
+                  />
+                )
+              }
+              break
+            case "hazard":
+              panel = (
+                <HazardSidebar
+                  hazardZones={hazardZones}
+                  cities={cities}
+                  onClose={() => { setShowHazard(false); setActiveFilter(null) }}
+                />
+              )
+              break
+            case "projects":
+              panel = (
+                <ProjectsSidebar
+                  projects={allProjects}
+                  cities={cities}
+                  onClose={() => { setShowProjects(false); setActiveFilter(null) }}
+                />
+              )
+              break
+            case "incidents":
+              panel = (
+                <IncidentsSidebar
+                  incidents={incidents}
+                  onClose={() => { setShowIncidents(false); setActiveFilter(null) }}
+                />
+              )
+              break
+            case "evac_centers":
+              panel = (
+                <EvacCentersSidebar
+                  evacCenters={evacCenters}
+                  onClose={() => { setShowEvacCenters(false); setActiveFilter(null) }}
+                />
+              )
+              break
+          }
+
+          return panel ? (
+            <aside className="w-96 flex-shrink-0 border-l border-[#334155] overflow-hidden">
+              {panel}
+            </aside>
+          ) : null
+        })()}
       </div>
 
       <footer className="border-t border-[#334155] bg-[#1e293b] px-4 py-1.5 text-center text-[11px] text-slate-500">

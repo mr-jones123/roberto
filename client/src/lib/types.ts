@@ -157,3 +157,5 @@ export type ClusterSelection = {
   clickedLng: number
   incidentIds: string[]
 }
+
+export type ActiveFilter = "coverage" | "hazard" | "projects" | "incidents" | "evac_centers"

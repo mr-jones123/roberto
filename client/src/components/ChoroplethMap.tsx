@@ -35,8 +35,6 @@ type Props = {
   onToggleWater?: () => void
 }
 
-type HoverInfo = { lng: number; lat: number; name: string; score: number }
-
 type PopupInfo =
   | { type: "project"; lng: number; lat: number; project: Project }
   | { type: "incident"; lng: number; lat: number; incident: IncidentRow }
@@ -46,10 +44,6 @@ const INTERACTIVE_LAYERS = [
   "boundaries-fill", "clusters", "unclustered-project",
   INCIDENT_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID,
 ]
-
-function getCityScore(cities: City[], cityNorm: string): number {
-  return cities.find((c) => c.city_norm === cityNorm)?.effective_coverage_score ?? 0
-}
 
 export function ChoroplethMap({
   boundaries, hazardZones, allProjects, cities,
@@ -67,7 +61,6 @@ export function ChoroplethMap({
 }: Props): JSX.Element | null {
   const mapRef = useRef<MapRef>(null)
   const [cursor, setCursor] = useState("auto")
-  const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null)
 
   const selectedCity = cities.find((c) => c.id === selectedCityId)
@@ -165,25 +158,8 @@ export function ChoroplethMap({
     }
   }, [cities, onSelectCity, allProjects, incidents, evacCenters, onClusterSelect])
 
-  const handleMouseMove = useCallback((event: MapMouseEvent) => {
-    const feature = (event.features as GeoJSONFeature[] | undefined)?.find(
-      (f: GeoJSONFeature) => f.layer?.id === "boundaries-fill",
-    )
-    if (!feature) {
-      setHoverInfo(null)
-      return
-    }
-    const cityNorm = feature.properties?.city_norm
-    if (typeof cityNorm !== "string") { setHoverInfo(null); return }
-    const name = typeof feature.properties?.admin3Name_en === "string"
-      ? feature.properties.admin3Name_en
-      : cityNorm
-    const score = getCityScore(cities, cityNorm)
-    setHoverInfo({ lng: event.lngLat.lng, lat: event.lngLat.lat, name, score })
-  }, [cities])
-
   const handleMouseEnter = useCallback(() => setCursor("pointer"), [])
-  const handleMouseLeave = useCallback(() => { setCursor("auto"); setHoverInfo(null) }, [])
+  const handleMouseLeave = useCallback(() => { setCursor("auto") }, [])
 
   useEffect(() => {
     if (!focusLocation) return
@@ -258,7 +234,6 @@ export function ChoroplethMap({
       mapStyle={MAP_STYLE}
       interactiveLayerIds={INTERACTIVE_LAYERS}
       onClick={handleClick}
-      onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onLoad={handleMapLoad}
@@ -405,21 +380,6 @@ export function ChoroplethMap({
             <span className="roberto-user-marker__dot" />
           </div>
         </Marker>
-      )}
-
-      {hoverInfo && !popupInfo && (
-        <Popup
-          longitude={hoverInfo.lng}
-          latitude={hoverInfo.lat}
-          closeButton={false}
-          closeOnClick={false}
-          offset={8}
-          anchor="bottom"
-        >
-          <div className="text-sm text-slate-50">
-            {hoverInfo.name}: {(hoverInfo.score * 100).toFixed(1)}%
-          </div>
-        </Popup>
       )}
 
       {popupInfo?.type === "project" && (

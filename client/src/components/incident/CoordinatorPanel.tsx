@@ -8,7 +8,7 @@ import {
 } from "../../lib/api"
 import { sortByDistanceFromPoint, distanceMeters } from "../../lib/cluster-utils"
 import type { ClusterSelection, IncidentRow } from "../../lib/types"
-import { useIncidentStream } from "../../hooks/useIncidentStream"
+import { broadcastIncidentUpdate, useIncidentStream } from "../../hooks/useIncidentStream"
 import { IncidentTimeline } from "./IncidentTimeline"
 import { KpiDashboard } from "./KpiDashboard"
 import { StatusBadge } from "./StatusBadge"
@@ -68,6 +68,7 @@ export function CoordinatorPanel({ token, onLogout, clusterSelection, onClearClu
 
   const updateIncident = (updated: IncidentRow) => {
     setIncidents((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
+    broadcastIncidentUpdate(updated)
   }
 
   const clusterIncidents = useMemo(() => {

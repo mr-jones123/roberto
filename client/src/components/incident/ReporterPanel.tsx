@@ -2,7 +2,7 @@ import { useEffect, useState, type JSX } from "react"
 import type React from "react"
 import { createIncident, fetchCurrentWeather, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
 import type { EvacCenter, FacilityType, IncidentRow, WeatherCurrent } from "../../lib/types"
-import { useIncidentStream } from "../../hooks/useIncidentStream"
+import { broadcastIncidentUpdate, useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
 
 type RoutePoint = { lat: number; lng: number }
@@ -195,6 +195,7 @@ export function ReporterPanel({
     })
       .then((res) => {
         setMyPings((prev) => [res.incident, ...prev])
+        broadcastIncidentUpdate(res.incident, "incident_created")
         setTitle("")
         setDescription("")
       })

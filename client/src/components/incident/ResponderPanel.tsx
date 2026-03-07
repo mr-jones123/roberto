@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react"
 import { fetchIncidents, fetchNearestEvacCenters, resolveIncident } from "../../lib/api"
 import type { EvacCenter, IncidentRow } from "../../lib/types"
-import { useIncidentStream } from "../../hooks/useIncidentStream"
+import { broadcastIncidentUpdate, useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
 
 type Props = {
@@ -61,6 +61,7 @@ export function ResponderPanel({ token, onLogout }: Props): JSX.Element {
     resolveIncident(token, inc.id, note, inc.version)
       .then((res) => {
         setIncidents((prev) => prev.map((i) => (i.id === res.incident.id ? res.incident : i)))
+        broadcastIncidentUpdate(res.incident)
       })
       .catch((err: unknown) => {
         const e = err as Error & { status?: number }
