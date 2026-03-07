@@ -211,7 +211,7 @@ export function fetchNearbyNodes(
   lng: number,
   radiusKm = 10,
 ): Promise<{ nodes: HelpNodeRow[] }> {
-  return authFetch(`/api/nodes/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`, token)
+  return authFetch(`/api/nodes/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`, token)
 }
 
 export function fetchNode(token: string, id: string): Promise<{ node: HelpNodeRow }> {
@@ -289,12 +289,12 @@ export function fetchInvitesCatchup(
   token: string,
   since: string,
 ): Promise<{ invites: ConnectionInviteRow[] }> {
-  return authFetch(`/api/invites?since=${encodeURIComponent(since)}`, token)
+  return authFetch(`/api/invites/catchup?since=${encodeURIComponent(since)}`, token)
 }
 
 export function fetchConversationsCatchup(
   token: string,
   since: string,
 ): Promise<{ messages: MessageRow[] }> {
-  return authFetch(`/api/conversations/messages?since=${encodeURIComponent(since)}`, token)
+  return authFetch(`/api/conversations/catchup?since=${encodeURIComponent(since)}`, token)
 }

@@ -173,11 +173,11 @@ export function useChatStream(token: string | null): UseChatStreamResult {
       catchUp(token, lastSyncAtRef.current, setInvites, setMessages).catch(() => {})
     }
 
-    source.addEventListener("message", onMessage)
+    source.addEventListener("incident_update", onMessage)
     source.addEventListener("error", onError)
 
     return () => {
-      source.removeEventListener("message", onMessage)
+      source.removeEventListener("incident_update", onMessage)
       source.removeEventListener("error", onError)
       source.close()
       sourceRef.current = null
