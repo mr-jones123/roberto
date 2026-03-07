@@ -1,9 +1,11 @@
-import type { IncidentRow } from "../db/incident-store.js";
+import type { ConnectionInviteRow, ConversationRow, IncidentRow, MessageRow } from "../db/incident-store.js";
 
-export type SSEEvent = {
-  type: "incident_created" | "incident_updated";
-  incident: IncidentRow;
-};
+export type SSEEvent =
+  | { type: "incident_created"; incident: IncidentRow }
+  | { type: "incident_updated"; incident: IncidentRow }
+  | { type: "invite_created"; invite: ConnectionInviteRow }
+  | { type: "invite_updated"; invite: ConnectionInviteRow; conversation?: ConversationRow }
+  | { type: "message_created"; message: MessageRow; conversationId: string };
 
 export type EventHandler = (event: SSEEvent) => void;
 

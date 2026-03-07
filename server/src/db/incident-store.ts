@@ -450,6 +450,10 @@ export class IncidentStore {
     return stmt.get(id) as ConversationRow | undefined;
   }
 
+  getConversationByInviteId(inviteId: string): ConversationRow | undefined {
+    return this.db.prepare("SELECT * FROM conversations WHERE invite_id = ?").get(inviteId) as ConversationRow | undefined;
+  }
+
   addParticipant(input: AddParticipantInput): ConversationParticipantRow {
     const stmt = this.db.prepare(`
       INSERT INTO conversation_participants (id, conversation_id, user_id)

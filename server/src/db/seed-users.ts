@@ -6,6 +6,7 @@ import { getDbPath } from "./migrate.js";
 
 const SEED_USERS = [
   { id: "user-reporter-01", role: INCIDENT_ROLE.REPORTER, username: "reporter1", password: "pass123" },
+  { id: "user-reporter-02", role: INCIDENT_ROLE.REPORTER, username: "reporter2", password: "pass123" },
   { id: "user-coord-01", role: INCIDENT_ROLE.COORDINATOR, username: "coord1", password: "pass123" },
   { id: "user-resp-01", role: INCIDENT_ROLE.RESPONDER, username: "resp1", password: "pass123" },
 ] as const;

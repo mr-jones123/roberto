@@ -19,7 +19,10 @@ import { createHazardRouter } from "./routes/hazard.js";
 import { createEventsRouter } from "./routes/events.js";
 import { createIncidentsRouter } from "./routes/incidents.js";
 import { createKpiRouter } from "./routes/kpi.js";
+import { createNodesRouter } from "./routes/nodes.js";
+import { createChatRouter } from "./routes/chat.js";
 import { LifecycleEngine } from "./lifecycle/engine.js";
+import { InviteEngine } from "./lifecycle/invite-engine.js";
 import { createMetaRouter } from "./routes/meta.js";
 import { EventBus } from "./realtime/event-bus.js";
 import { createProjectsRouter } from "./routes/projects.js";
@@ -57,6 +60,7 @@ const startServer = async (): Promise<void> => {
   const dataStore = createDataStore(dataBundle);
   const incidentStore = new IncidentStore();
   const lifecycleEngine = new LifecycleEngine(incidentStore);
+  const inviteEngine = new InviteEngine(incidentStore);
   const eventBus = new EventBus();
 
   const app = express();
@@ -80,6 +84,8 @@ const startServer = async (): Promise<void> => {
   app.use("/api/meta", createMetaRouter(dataStore));
   app.use("/api/route", createRouteRouter());
   app.use("/api/weather", createWeatherRouter());
+  app.use("/api/nodes", createNodesRouter(incidentStore, eventBus));
+  app.use("/api", createChatRouter(incidentStore, inviteEngine, eventBus));
   app.use("/api", createAnalysisRouter(dataStore));
 
   app.get("/health", (_req, res) => {
