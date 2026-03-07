@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from "react"
+import { useEffect, useMemo, useState, type JSX } from "react"
 import {
   assignIncident,
   fetchIncidents,
@@ -6,6 +6,7 @@ import {
   rejectIncident,
   verifyIncident,
 } from "../../lib/api"
+import { sortByDistanceFromPoint, distanceMeters } from "../../lib/cluster-utils"
 import type { ClusterSelection, IncidentRow } from "../../lib/types"
 import { useIncidentStream } from "../../hooks/useIncidentStream"
 import { IncidentTimeline } from "./IncidentTimeline"
@@ -23,7 +24,7 @@ type StatusFilter = "ALL" | "PING" | "VERIFIED" | "PRIORITIZED" | "ASSIGNED" | "
 
 const FILTER_OPTIONS: StatusFilter[] = ["ALL", "PING", "VERIFIED", "PRIORITIZED", "ASSIGNED", "RESOLVED", "REJECTED"]
 
-export function CoordinatorPanel({ token, onLogout, clusterSelection: _clusterSelection, onClearCluster: _onClearCluster }: Props): JSX.Element {
+export function CoordinatorPanel({ token, onLogout, clusterSelection, onClearCluster }: Props): JSX.Element {
   const [incidents, setIncidents] = useState<IncidentRow[]>([])
   const [filter, setFilter] = useState<StatusFilter>("ALL")
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -69,9 +70,17 @@ export function CoordinatorPanel({ token, onLogout, clusterSelection: _clusterSe
     setIncidents((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
   }
 
-  const filtered = incidents
-    .filter((i) => filter === "ALL" || i.status === filter)
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  const clusterIncidents = useMemo(() => {
+    if (!clusterSelection) return null
+    const ids = new Set(clusterSelection.incidentIds)
+    const members = incidents.filter((i) => ids.has(i.id))
+    return sortByDistanceFromPoint(members, clusterSelection.clickedLat, clusterSelection.clickedLng)
+  }, [clusterSelection, incidents])
+
+  const filtered = clusterIncidents
+    ?? incidents
+      .filter((i) => filter === "ALL" || i.status === filter)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   return (
     <div className="flex h-full flex-col bg-[#1e293b] text-slate-50">
@@ -108,6 +117,21 @@ export function CoordinatorPanel({ token, onLogout, clusterSelection: _clusterSe
 
       <KpiDashboard token={token} />
 
+      {clusterSelection && clusterIncidents && (
+        <div className="flex items-center justify-between border-b border-red-500/20 bg-red-500/5 px-4 py-2">
+          <div className="text-xs text-red-300">
+            <span className="font-semibold">{clusterIncidents.length} PINGs</span>
+            <span className="text-red-400/60"> within 300m — nearest first</span>
+          </div>
+          <button
+            onClick={onClearCluster}
+            className="rounded px-2 py-0.5 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-500/15"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {toast && (
         <div
           data-testid="toast-error"
@@ -130,6 +154,7 @@ export function CoordinatorPanel({ token, onLogout, clusterSelection: _clusterSe
             token={token}
             onUpdate={updateIncident}
             onError={handleError}
+            clusterCenter={clusterSelection ? { lat: clusterSelection.clickedLat, lng: clusterSelection.clickedLng } : undefined}
           />
         ))}
       </div>
@@ -144,6 +169,7 @@ function IncidentQueueRow({
   token,
   onUpdate,
   onError,
+  clusterCenter,
 }: {
   incident: IncidentRow
   expanded: boolean
@@ -151,6 +177,7 @@ function IncidentQueueRow({
   token: string
   onUpdate: (i: IncidentRow) => void
   onError: (e: unknown) => void
+  clusterCenter?: { lat: number; lng: number }
 }): JSX.Element {
   const [priorityInput, setPriorityInput] = useState("")
   const [rejectReason, setRejectReason] = useState("")
@@ -166,6 +193,9 @@ function IncidentQueueRow({
   }
 
   const ago = formatTimeAgo(incident.created_at)
+  const dist = clusterCenter
+    ? distanceMeters(clusterCenter.lat, clusterCenter.lng, incident.latitude, incident.longitude)
+    : null
 
   return (
     <div
@@ -179,7 +209,8 @@ function IncidentQueueRow({
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-slate-200">{incident.title}</p>
           <p className="mt-0.5 text-[10px] text-slate-600">
-            {ago} &middot; {incident.latitude.toFixed(3)}, {incident.longitude.toFixed(3)}
+            {dist != null ? <span className="text-red-400">{Math.round(dist)}m away</span> : ago}
+            {" "}&middot; {incident.latitude.toFixed(3)}, {incident.longitude.toFixed(3)}
           </p>
         </div>
         <StatusBadge status={incident.status} />

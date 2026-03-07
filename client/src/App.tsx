@@ -169,19 +169,11 @@ function App(): JSX.Element {
               >
                 Back to Analytics
               </button>
-              {effectiveShowHazard && (
-                <>
-                  <LayerToggle label="3D" active={show3D} onToggle={() => setShow3D((v) => !v)} color="#8b5cf6" />
-                  {show3D && <LayerToggle label="Water" active={showWater} onToggle={() => setShowWater((v) => !v)} color="#38bdf8" />}
-                </>
-              )}
             </>
           ) : (
             <>
               <LayerToggle label="Coverage" active={showCoverage} onToggle={() => setShowCoverage((v) => !v)} color="#64748b" />
               <LayerToggle label="Hazard" active={showHazard} onToggle={() => setShowHazard((v) => !v)} color="#3b82f6" />
-              {showHazard && <LayerToggle label="3D Risk" active={show3D} onToggle={() => setShow3D((v) => !v)} color="#8b5cf6" />}
-              {showHazard && show3D && <LayerToggle label="Water" active={showWater} onToggle={() => setShowWater((v) => !v)} color="#38bdf8" />}
               <LayerToggle label="Projects" active={showProjects} onToggle={() => setShowProjects((v) => !v)} color="#22c55e" />
               <LayerToggle label="Incidents" active={showIncidents} onToggle={() => setShowIncidents((v) => !v)} color="#ef4444" data-testid="toggle-incidents" />
               <LayerToggle label="Evac Centers" active={showEvacCenters} onToggle={() => setShowEvacCenters((v) => !v)} color="#10b981" data-testid="toggle-evac-centers" />
@@ -237,6 +229,8 @@ function App(): JSX.Element {
             focusLocation={focusLocation}
             userLocation={userLocation}
             onClusterSelect={setClusterSelection}
+            onToggle3D={() => setShow3D((v) => !v)}
+            onToggleWater={() => setShowWater((v) => !v)}
           />
         </main>
 

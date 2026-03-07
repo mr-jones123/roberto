@@ -5,7 +5,8 @@ import type { ExpressionSpecification, GeoJSONFeature, GeoJSONSource } from "map
 import { formatPHP, scoreColor } from "../lib/colors"
 import { BUILDING_3D_COLOR, DEFAULT_CENTER, DEFAULT_ZOOM, HAZARD_COLORS, MAPBOX_TOKEN, MAP_STYLE, toLngLat } from "../lib/map-utils"
 import type { City, ClusterSelection, EvacCenterRow, IncidentRow, Project } from "../lib/types"
-import { IncidentMapLayers, INCIDENT_LAYER_ID, EVAC_LAYER_ID } from "./IncidentMapLayers"
+import { IncidentMapLayers, INCIDENT_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID } from "./IncidentMapLayers"
+import { LayerToggle } from "./LayerToggle"
 import { RouteOverlay } from "./RouteOverlay"
 
 type Props = {
@@ -30,6 +31,8 @@ type Props = {
   focusLocation?: { lat: number; lng: number } | null
   userLocation?: { lat: number; lng: number } | null
   onClusterSelect?: (selection: ClusterSelection) => void
+  onToggle3D?: () => void
+  onToggleWater?: () => void
 }
 
 type HoverInfo = { lng: number; lat: number; name: string; score: number }
@@ -41,7 +44,7 @@ type PopupInfo =
 
 const INTERACTIVE_LAYERS = [
   "boundaries-fill", "clusters", "unclustered-project",
-  INCIDENT_LAYER_ID, EVAC_LAYER_ID,
+  INCIDENT_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID,
 ]
 
 function getCityScore(cities: City[], cityNorm: string): number {
@@ -58,7 +61,9 @@ export function ChoroplethMap({
   evacCenters = [], showEvacCenters = false,
   routeFrom = null, routeTo = null, routeFacilityName = null,
   focusLocation = null, userLocation = null,
-  onClusterSelect: _onClusterSelect = () => {},
+  onClusterSelect = () => {},
+  onToggle3D,
+  onToggleWater,
 }: Props): JSX.Element | null {
   const mapRef = useRef<MapRef>(null)
   const [cursor, setCursor] = useState("auto")
@@ -145,8 +150,20 @@ export function ChoroplethMap({
       const center = evacCenters.find((ec) => ec.id === id)
       if (!center) return
       setPopupInfo({ type: "evac", lng: event.lngLat.lng, lat: event.lngLat.lat, center })
+      return
     }
-  }, [cities, onSelectCity, allProjects, incidents, evacCenters])
+
+    if (layerId === PING_CLUSTER_LAYER_ID) {
+      const raw = feature.properties?.memberIds
+      const lat = feature.properties?.centerLat
+      const lng = feature.properties?.centerLng
+      if (typeof raw !== "string" || typeof lat !== "number" || typeof lng !== "number") return
+      try {
+        const ids = JSON.parse(raw) as string[]
+        onClusterSelect({ clickedLat: lat, clickedLng: lng, incidentIds: ids })
+      } catch {}
+    }
+  }, [cities, onSelectCity, allProjects, incidents, evacCenters, onClusterSelect])
 
   const handleMouseMove = useCallback((event: MapMouseEvent) => {
     const feature = (event.features as GeoJSONFeature[] | undefined)?.find(
@@ -376,6 +393,7 @@ export function ChoroplethMap({
         showIncidents={showIncidents}
         evacCenters={evacCenters}
         showEvacCenters={showEvacCenters}
+        onClusterSelect={onClusterSelect}
       />
 
       <RouteOverlay from={routeFrom} to={routeTo} facilityName={routeFacilityName} />
@@ -438,6 +456,14 @@ export function ChoroplethMap({
     {show3D && (
       <div className="absolute bottom-3 left-3 z-10 rounded-lg border border-purple-500/30 bg-purple-900/80 px-3 py-1.5 text-[11px] text-purple-200 backdrop-blur-sm">
         3D buildings are from Mapbox — hazard coloring is illustrative
+      </div>
+    )}
+    {showHazard && onToggle3D && (
+      <div className="absolute top-3 left-3 z-10 flex gap-1.5">
+        <LayerToggle label="3D" active={show3D} onToggle={onToggle3D} color="#8b5cf6" />
+        {show3D && onToggleWater && (
+          <LayerToggle label="Water" active={showWater} onToggle={onToggleWater} color="#38bdf8" />
+        )}
       </div>
     )}
     </div>

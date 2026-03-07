@@ -1,16 +1,20 @@
 import { useMemo, type JSX } from "react"
 import { Source, Layer } from "react-map-gl/mapbox"
 import { toLngLat } from "../lib/map-utils"
-import type { EvacCenterRow, IncidentRow } from "../lib/types"
+import { clusterPingIncidents } from "../lib/cluster-utils"
+import type { ClusterSelection, EvacCenterRow, IncidentRow } from "../lib/types"
 
 export const INCIDENT_LAYER_ID = "incidents-circle"
 export const EVAC_LAYER_ID = "evac-circle"
+export const PING_CLUSTER_LAYER_ID = "ping-clusters-circle"
+export const PING_CLUSTER_COUNT_ID = "ping-clusters-count"
 
 type IncidentLayerProps = {
   incidents: IncidentRow[]
   showIncidents: boolean
   evacCenters: EvacCenterRow[]
   showEvacCenters: boolean
+  onClusterSelect?: (selection: ClusterSelection) => void
 }
 
 export function IncidentMapLayers({
@@ -19,14 +23,55 @@ export function IncidentMapLayers({
   evacCenters,
   showEvacCenters,
 }: IncidentLayerProps): JSX.Element {
-  const incidentsGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+  const pingClusters = useMemo(
+    () => clusterPingIncidents(incidents, 300),
+    [incidents],
+  )
+
+  // Non-PING incidents rendered as normal circles
+  const nonPingGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
     type: "FeatureCollection",
-    features: incidents.map((inc) => ({
-      type: "Feature" as const,
-      geometry: { type: "Point" as const, coordinates: toLngLat(inc.latitude, inc.longitude) },
-      properties: { id: inc.id, status: inc.status },
-    })),
+    features: incidents
+      .filter((inc) => inc.status !== "PING")
+      .map((inc) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: toLngLat(inc.latitude, inc.longitude) },
+        properties: { id: inc.id, status: inc.status },
+      })),
   }), [incidents])
+
+  // Single-member clusters rendered as normal PING circles
+  const singlePingGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: pingClusters
+      .filter((c) => c.members.length === 1)
+      .map((c) => {
+        const inc = c.members[0]!
+        return {
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: toLngLat(inc.latitude, inc.longitude) },
+          properties: { id: inc.id, status: "PING" },
+        }
+      }),
+  }), [pingClusters])
+
+  // Multi-member clusters rendered as larger cluster markers
+  const clusterGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: pingClusters
+      .filter((c) => c.members.length > 1)
+      .map((c) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: toLngLat(c.center.lat, c.center.lng) },
+        properties: {
+          clusterId: c.id,
+          count: c.members.length,
+          memberIds: JSON.stringify(c.members.map((m) => m.id)),
+          centerLat: c.center.lat,
+          centerLng: c.center.lng,
+        },
+      })),
+  }), [pingClusters])
 
   const evacGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
     type: "FeatureCollection",
@@ -39,7 +84,8 @@ export function IncidentMapLayers({
 
   return (
     <>
-      <Source id="incidents" type="geojson" data={incidentsGeoJSON}>
+      {/* Non-PING incidents */}
+      <Source id="incidents" type="geojson" data={nonPingGeoJSON}>
         <Layer
           id={INCIDENT_LAYER_ID}
           type="circle"
@@ -48,7 +94,6 @@ export function IncidentMapLayers({
             "circle-radius": 8,
             "circle-color": [
               "match", ["get", "status"],
-              "PING", "#ef4444",
               "VERIFIED", "#3b82f6",
               "PRIORITIZED", "#f97316",
               "ASSIGNED", "#a855f7",
@@ -63,6 +108,61 @@ export function IncidentMapLayers({
           }}
         />
       </Source>
+
+      {/* Standalone PING incidents (single-member clusters) */}
+      <Source id="ping-singles" type="geojson" data={singlePingGeoJSON}>
+        <Layer
+          id="ping-singles-circle"
+          type="circle"
+          layout={{ visibility: showIncidents ? "visible" : "none" }}
+          paint={{
+            "circle-radius": 8,
+            "circle-color": "#ef4444",
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#0f172a",
+            "circle-opacity": 0.75,
+            "circle-pitch-alignment": "viewport",
+            "circle-pitch-scale": "viewport",
+          }}
+        />
+      </Source>
+
+      {/* Multi-member PING clusters */}
+      <Source id="ping-clusters" type="geojson" data={clusterGeoJSON}>
+        <Layer
+          id={PING_CLUSTER_LAYER_ID}
+          type="circle"
+          layout={{ visibility: showIncidents ? "visible" : "none" }}
+          paint={{
+            "circle-radius": [
+              "step", ["get", "count"],
+              14,   // 2 members
+              5, 18,  // 5+ members
+              10, 22, // 10+ members
+            ],
+            "circle-color": "#ef4444",
+            "circle-stroke-width": 3,
+            "circle-stroke-color": "#fca5a5",
+            "circle-opacity": 0.85,
+            "circle-pitch-alignment": "viewport",
+            "circle-pitch-scale": "viewport",
+          }}
+        />
+        <Layer
+          id={PING_CLUSTER_COUNT_ID}
+          type="symbol"
+          layout={{
+            visibility: showIncidents ? "visible" : "none",
+            "text-field": ["concat", ["get", "count"]],
+            "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+            "text-size": 12,
+            "text-allow-overlap": true,
+          }}
+          paint={{ "text-color": "#ffffff" }}
+        />
+      </Source>
+
+      {/* Evac centers */}
       <Source id="evac-centers" type="geojson" data={evacGeoJSON}>
         <Layer
           id={EVAC_LAYER_ID}
