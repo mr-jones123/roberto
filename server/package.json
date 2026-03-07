@@ -7,7 +7,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc && cp src/db/schema.sql dist/db/",
     "start": "node dist/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "contract:validate": "tsx src/contracts/validate-contracts.ts"
   },
   "keywords": [],
   "author": "",
