@@ -3,6 +3,7 @@ import {
   INCIDENT_STATUS,
   type IncidentStatus,
 } from "../contracts/incident-command.js";
+import type { InviteStatus } from "../db/incident-store.js";
 
 export const TRANSITION_GUARD: Record<IncidentStatus, IncidentStatus[]> = {
   [INCIDENT_STATUS.PING]: [...INCIDENT_LIFECYCLE_TRANSITIONS[INCIDENT_STATUS.PING]],
@@ -13,4 +14,12 @@ export const TRANSITION_GUARD: Record<IncidentStatus, IncidentStatus[]> = {
   [INCIDENT_STATUS.STOOD_DOWN]: [],
   [INCIDENT_STATUS.DUPLICATE]: [],
   [INCIDENT_STATUS.REJECTED]: [],
+};
+
+export const INVITE_TRANSITION_GUARD: Record<InviteStatus, InviteStatus[]> = {
+  pending: ["accepted", "rejected", "cancelled", "expired"],
+  accepted: [],
+  rejected: [],
+  cancelled: [],
+  expired: [],
 };
