@@ -42,9 +42,9 @@ export class InviteEngine {
         invite.version
       );
       if (expired) {
-        this.store.appendEvent({
+        this.store.appendInviteEvent({
           id: randomUUID(),
-          incident_id: inviteId,
+          invite_id: inviteId,
           actor_id: actorId,
           action: "invite_transition",
           old_status: invite.status,
@@ -93,9 +93,9 @@ export class InviteEngine {
       };
     }
 
-    this.store.appendEvent({
+    this.store.appendInviteEvent({
       id: randomUUID(),
-      incident_id: inviteId,
+      invite_id: inviteId,
       actor_id: actorId,
       action: "invite_transition",
       old_status: invite.status,
@@ -151,9 +151,9 @@ export class InviteEngine {
           user_id: recipientNode.user_id,
         });
 
-        this.store.appendEvent({
+        this.store.appendInviteEvent({
           id: randomUUID(),
-          incident_id: invite.id,
+          invite_id: invite.id,
           actor_id: actorId,
           action: "invite_transition",
           old_status: invite.status,

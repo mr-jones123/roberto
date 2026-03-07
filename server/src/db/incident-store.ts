@@ -81,6 +81,16 @@ export type AppendEventInput = {
   payload?: string;
 };
 
+export type AppendInviteEventInput = {
+  id: string;
+  invite_id: string;
+  actor_id: string;
+  action: string;
+  old_status?: string;
+  new_status?: string;
+  payload?: string;
+};
+
 export type CreateAssignmentInput = {
   id: string;
   incident_id: string;
@@ -232,6 +242,22 @@ export class IncidentStore {
 
     const row = this.db.prepare("SELECT * FROM incident_events WHERE id = ?").get(input.id);
     return row as IncidentEventRow;
+  }
+
+  appendInviteEvent(input: AppendInviteEventInput): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO invite_events (id, invite_id, actor_id, action, old_status, new_status, payload)
+      VALUES (@id, @invite_id, @actor_id, @action, @old_status, @new_status, @payload)
+    `);
+    stmt.run({
+      id: input.id,
+      invite_id: input.invite_id,
+      actor_id: input.actor_id,
+      action: input.action,
+      old_status: input.old_status ?? null,
+      new_status: input.new_status ?? null,
+      payload: input.payload ?? null,
+    });
   }
 
   listEvents(incidentId: string): IncidentEventRow[] {

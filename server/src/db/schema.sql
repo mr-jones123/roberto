@@ -36,6 +36,17 @@ CREATE TABLE IF NOT EXISTS incident_events (
   created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+CREATE TABLE IF NOT EXISTS invite_events (
+  id          TEXT PRIMARY KEY,
+  invite_id   TEXT NOT NULL REFERENCES connection_invites(id),
+  actor_id    TEXT NOT NULL REFERENCES users(id),
+  action      TEXT NOT NULL,
+  old_status  TEXT,
+  new_status  TEXT,
+  payload     TEXT,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
 CREATE TABLE IF NOT EXISTS assignments (
   id            TEXT PRIMARY KEY,
   incident_id   TEXT NOT NULL REFERENCES incidents(id),
@@ -115,6 +126,7 @@ CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
 CREATE INDEX IF NOT EXISTS idx_incidents_reporter ON incidents(reporter_id);
 CREATE INDEX IF NOT EXISTS idx_incident_events_incident ON incident_events(incident_id);
 CREATE INDEX IF NOT EXISTS idx_incident_events_created ON incident_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_invite_events_invite ON invite_events(invite_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_incident ON assignments(incident_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_responder ON assignments(responder_id);
 CREATE INDEX IF NOT EXISTS idx_evac_centers_status ON evac_centers(status);
