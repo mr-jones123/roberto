@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX } from "react"
 import { ChoroplethMap } from "./components/ChoroplethMap"
+import { LayerToggle } from "./components/LayerToggle"
 import { CityDetail } from "./components/CityDetail"
 import { CityRanking } from "./components/CityRanking"
 import { Methodology } from "./components/Methodology"
@@ -12,7 +13,7 @@ import { useCity } from "./hooks/useCity"
 import { useAuth } from "./hooks/useAuth"
 import { useIncidentStream } from "./hooks/useIncidentStream"
 import { fetchEvacCenters } from "./lib/api"
-import type { EvacCenterRow } from "./lib/types"
+import type { ClusterSelection, EvacCenterRow } from "./lib/types"
 
 type RouteTarget = {
   from: { lat: number; lng: number }
@@ -26,15 +27,22 @@ function App(): JSX.Element {
   const [showMethodology, setShowMethodology] = useState(false)
   const [showHazard, setShowHazard] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
+  const [show3D, setShow3D] = useState(false)
+  const [showWater, setShowWater] = useState(false)
+  const [showCoverage, setShowCoverage] = useState(true)
   const [showIncidents, setShowIncidents] = useState(false)
   const [showEvacCenters, setShowEvacCenters] = useState(false)
   const [incidentMode, setIncidentMode] = useState(false)
+  const [reporterFloodContext, setReporterFloodContext] = useState(false)
+  const [reporterWeatherContext, setReporterWeatherContext] = useState(false)
   const { detail, loading: detailLoading } = useCity(selectedCityId)
   const auth = useAuth()
   const { incidents } = useIncidentStream()
   const [evacCenters, setEvacCenters] = useState<EvacCenterRow[]>([])
   const [routeTarget, setRouteTarget] = useState<RouteTarget | null>(null)
   const [focusLocation, setFocusLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [clusterSelection, setClusterSelection] = useState<ClusterSelection | null>(null)
 
   useEffect(() => {
     fetchEvacCenters()
@@ -45,13 +53,31 @@ function App(): JSX.Element {
   useEffect(() => {
     if (!incidentMode) {
       setRouteTarget(null)
+      setClusterSelection(null)
+    }
+  }, [incidentMode])
+
+  useEffect(() => {
+    if (incidentMode) {
+      setSelectedCityId(null)
+      setShowHazard(false)
+      setShowProjects(false)
     }
   }, [incidentMode])
 
   const handleLogout = () => {
     setRouteTarget(null)
+    setUserLocation(null)
+    setReporterFloodContext(false)
+    setReporterWeatherContext(false)
     auth.logout()
   }
+
+  const isReporterIncidentView = incidentMode && auth.user?.role === "reporter"
+  const effectiveShowHazard = isReporterIncidentView ? reporterFloodContext : showHazard
+  const showCoverageOverlay = isReporterIncidentView
+    ? reporterFloodContext
+    : showCoverage
 
   if (loading) {
     return (
@@ -99,6 +125,11 @@ function App(): JSX.Element {
           onLogout={handleLogout}
           onSelectFacility={(from, to, name) => setRouteTarget({ from, to, name })}
           onFocusPing={(lat, lng) => setFocusLocation({ lat, lng })}
+          onUserLocationChange={(lat, lng) => setUserLocation({ lat, lng })}
+          showFloodContext={reporterFloodContext}
+          onToggleFloodContext={() => setReporterFloodContext((v) => !v)}
+          showWeatherContext={reporterWeatherContext}
+          onToggleWeatherContext={() => setReporterWeatherContext((v) => !v)}
         />
       )
     }
@@ -108,6 +139,8 @@ function App(): JSX.Element {
         <CoordinatorPanel
           token={auth.token!}
           onLogout={handleLogout}
+          clusterSelection={clusterSelection}
+          onClearCluster={() => setClusterSelection(null)}
         />
       )
     }
@@ -129,15 +162,26 @@ function App(): JSX.Element {
         </div>
         <div className="flex items-center gap-2">
           {incidentMode ? (
-            <button
-              onClick={() => setIncidentMode(false)}
-              className="rounded-lg border border-[#334155] px-2.5 py-1 text-xs font-medium text-slate-400 transition-colors hover:bg-[#334155] hover:text-slate-200"
-            >
-              Back to Analytics
-            </button>
+            <>
+              <button
+                onClick={() => setIncidentMode(false)}
+                className="rounded-lg border border-[#334155] px-2.5 py-1 text-xs font-medium text-slate-400 transition-colors hover:bg-[#334155] hover:text-slate-200"
+              >
+                Back to Analytics
+              </button>
+              {effectiveShowHazard && (
+                <>
+                  <LayerToggle label="3D" active={show3D} onToggle={() => setShow3D((v) => !v)} color="#8b5cf6" />
+                  {show3D && <LayerToggle label="Water" active={showWater} onToggle={() => setShowWater((v) => !v)} color="#38bdf8" />}
+                </>
+              )}
+            </>
           ) : (
             <>
+              <LayerToggle label="Coverage" active={showCoverage} onToggle={() => setShowCoverage((v) => !v)} color="#64748b" />
               <LayerToggle label="Hazard" active={showHazard} onToggle={() => setShowHazard((v) => !v)} color="#3b82f6" />
+              {showHazard && <LayerToggle label="3D Risk" active={show3D} onToggle={() => setShow3D((v) => !v)} color="#8b5cf6" />}
+              {showHazard && show3D && <LayerToggle label="Water" active={showWater} onToggle={() => setShowWater((v) => !v)} color="#38bdf8" />}
               <LayerToggle label="Projects" active={showProjects} onToggle={() => setShowProjects((v) => !v)} color="#22c55e" />
               <LayerToggle label="Incidents" active={showIncidents} onToggle={() => setShowIncidents((v) => !v)} color="#ef4444" data-testid="toggle-incidents" />
               <LayerToggle label="Evac Centers" active={showEvacCenters} onToggle={() => setShowEvacCenters((v) => !v)} color="#10b981" data-testid="toggle-evac-centers" />
@@ -177,9 +221,12 @@ function App(): JSX.Element {
             allProjects={allProjects}
             cities={cities}
             selectedCityId={selectedCityId}
-            onSelectCity={setSelectedCityId}
-            showHazard={showHazard}
+            onSelectCity={incidentMode ? () => {} : setSelectedCityId}
+            showHazard={effectiveShowHazard}
+            show3D={show3D && effectiveShowHazard}
+            showWater={showWater && show3D && effectiveShowHazard}
             showProjects={showProjects}
+            showCoverageOverlay={showCoverageOverlay}
             incidents={incidents}
             showIncidents={showIncidents || incidentMode}
             evacCenters={evacCenters}
@@ -188,10 +235,12 @@ function App(): JSX.Element {
             routeTo={routeTarget?.to ?? null}
             routeFacilityName={routeTarget?.name ?? null}
             focusLocation={focusLocation}
+            userLocation={userLocation}
+            onClusterSelect={setClusterSelection}
           />
         </main>
 
-        {selectedCityId && detail && !detailLoading && (
+        {!incidentMode && selectedCityId && detail && !detailLoading && (
           <aside className="w-96 flex-shrink-0 border-l border-[#334155] overflow-hidden">
             <CityDetail
               city={detail.city}
@@ -208,29 +257,6 @@ function App(): JSX.Element {
 
       {showMethodology && <Methodology onClose={() => setShowMethodology(false)} />}
     </div>
-  )
-}
-
-function LayerToggle({ label, active, onToggle, color, "data-testid": testId }: {
-  label: string
-  active: boolean
-  onToggle: () => void
-  color: string
-  "data-testid"?: string
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      data-testid={testId}
-      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-        active
-          ? "border-transparent bg-white/10 text-slate-200"
-          : "border-[#334155] text-slate-500 hover:text-slate-300"
-      }`}
-    >
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: active ? color : "#475569" }} />
-      {label}
-    </button>
   )
 }
 

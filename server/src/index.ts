@@ -24,6 +24,7 @@ import { createMetaRouter } from "./routes/meta.js";
 import { EventBus } from "./realtime/event-bus.js";
 import { createProjectsRouter } from "./routes/projects.js";
 import { createRouteRouter } from "./routes/route.js";
+import { createWeatherRouter } from "./routes/weather.js";
 
 dotenv.config();
 
@@ -78,6 +79,7 @@ const startServer = async (): Promise<void> => {
   app.use("/api/hazard", createHazardRouter(dataStore));
   app.use("/api/meta", createMetaRouter(dataStore));
   app.use("/api/route", createRouteRouter());
+  app.use("/api/weather", createWeatherRouter());
   app.use("/api", createAnalysisRouter(dataStore));
 
   app.get("/health", (_req, res) => {

@@ -82,11 +82,11 @@ Administrative boundary geometries from [OCHA Philippines](https://data.humdata.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 19, Vite, Leaflet, Tailwind CSS 4 |
+| Frontend | React 19, Vite, Mapbox GL JS, Tailwind CSS 4 |
 | Backend | Express 5, TypeScript |
 | Data Pipeline | Python, GeoPandas, Shapely |
 | AI | Google Gemini 2.0 Flash (user-provided API key) |
-| Map | OpenStreetMap tiles, react-leaflet, react-leaflet-cluster |
+| Map | Mapbox GL JS (dark-v11), react-map-gl v8, native GeoJSON clustering |
 | Deployment | Render (free tier) |
 
 ### Why Python for spatial ops?
@@ -124,6 +124,7 @@ roberto/
 ### Prerequisites
 
 - Node.js 20+
+- Mapbox access token (set `VITE_MAPBOX_ACCESS_TOKEN` in `.env` at repo root)
 - Python 3.10+ with GeoPandas (only if regenerating data)
 
 ### Quick Start
@@ -170,7 +171,7 @@ Roberto is configured for [Render](https://render.com) free tier:
 
 ![Zoomed in view showing project clusters and individual markers](docs/clusters.png)
 
-Projects are clustered using `react-leaflet-cluster` (wrapping Leaflet.markercluster). Clusters break apart as you zoom in. Individual project dots are color-coded by status:
+Projects are clustered using native Mapbox GL GeoJSON clustering. Clusters break apart as you zoom in. Individual project dots are color-coded by status:
 
 - **Green** — Completed
 - **Amber** — On-Going
@@ -182,4 +183,6 @@ Click any dot for full project details:
 
 ## License
 
-Data licenses: DPWH data (CC0), NOAH flood hazard (ODbL 1.0), OCHA boundaries (public domain).
+Data licenses: DPWH data (CC0), NOAH flood hazard (ODbL 1.0), OCHA boundaries (public domain). Map tiles © Mapbox © OpenStreetMap.
+
+**3D Risk View Disclaimer**: The optional 3D hazard visualization uses illustrative heights to represent risk severity levels. These do NOT represent measured or predicted water depth.

@@ -47,6 +47,25 @@ export type CityDetail = {
   projects: Project[]
 }
 
+export type WeatherCurrent = {
+  source: string
+  location: {
+    lat: number
+    lng: number
+  }
+  current: {
+    observed_at: string
+    temperature_c: number
+    feels_like_c: number
+    precipitation_mm: number
+    rain_mm: number
+    wind_kph: number
+    weather_code: number
+    weather_label: string
+    is_day: boolean
+  }
+}
+
 export type IncidentRow = {
   id: string
   title: string
@@ -131,4 +150,10 @@ export type IncidentEventRow = {
   new_status: string | null
   payload: string | null
   created_at: string
+}
+
+export type ClusterSelection = {
+  clickedLat: number
+  clickedLng: number
+  incidentIds: string[]
 }

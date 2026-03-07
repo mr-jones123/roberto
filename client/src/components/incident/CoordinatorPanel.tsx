@@ -6,7 +6,7 @@ import {
   rejectIncident,
   verifyIncident,
 } from "../../lib/api"
-import type { IncidentRow } from "../../lib/types"
+import type { ClusterSelection, IncidentRow } from "../../lib/types"
 import { useIncidentStream } from "../../hooks/useIncidentStream"
 import { IncidentTimeline } from "./IncidentTimeline"
 import { KpiDashboard } from "./KpiDashboard"
@@ -15,13 +15,15 @@ import { StatusBadge } from "./StatusBadge"
 type Props = {
   token: string
   onLogout: () => void
+  clusterSelection?: ClusterSelection | null
+  onClearCluster?: () => void
 }
 
 type StatusFilter = "ALL" | "PING" | "VERIFIED" | "PRIORITIZED" | "ASSIGNED" | "RESOLVED" | "REJECTED"
 
 const FILTER_OPTIONS: StatusFilter[] = ["ALL", "PING", "VERIFIED", "PRIORITIZED", "ASSIGNED", "RESOLVED", "REJECTED"]
 
-export function CoordinatorPanel({ token, onLogout }: Props): JSX.Element {
+export function CoordinatorPanel({ token, onLogout, clusterSelection: _clusterSelection, onClearCluster: _onClearCluster }: Props): JSX.Element {
   const [incidents, setIncidents] = useState<IncidentRow[]>([])
   const [filter, setFilter] = useState<StatusFilter>("ALL")
   const [expandedId, setExpandedId] = useState<string | null>(null)

@@ -1,57 +1,12 @@
-import L from "leaflet"
-import { useEffect, useRef } from "react"
-import type React from "react"
-import { GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from "react-leaflet"
-import MarkerClusterGroup from "react-leaflet-cluster"
-import "react-leaflet-cluster/dist/assets/MarkerCluster.css"
-import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css"
-import type { GeoJSON as GeoJSONLayer } from "leaflet"
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react"
+import Map, { Source, Layer, Popup, Marker, NavigationControl } from "react-map-gl/mapbox"
+import type { MapRef, MapMouseEvent } from "react-map-gl/mapbox"
+import type { ExpressionSpecification, GeoJSONFeature, GeoJSONSource } from "mapbox-gl"
 import { formatPHP, scoreColor } from "../lib/colors"
-import type { City, EvacCenterRow, IncidentRow, Project } from "../lib/types"
-import { IncidentMapLayers } from "./IncidentMapLayers"
+import { BUILDING_3D_COLOR, DEFAULT_CENTER, DEFAULT_ZOOM, HAZARD_COLORS, MAPBOX_TOKEN, MAP_STYLE, toLngLat } from "../lib/map-utils"
+import type { City, ClusterSelection, EvacCenterRow, IncidentRow, Project } from "../lib/types"
+import { IncidentMapLayers, INCIDENT_LAYER_ID, EVAC_LAYER_ID } from "./IncidentMapLayers"
 import { RouteOverlay } from "./RouteOverlay"
-
-type FeatureLayer = L.Path & { feature: GeoJSON.Feature }
-
-const HAZARD_COLORS: Record<number, string> = {
-  1: "#93c5fd",
-  2: "#3b82f6",
-  3: "#1e3a8a",
-}
-
-const PROJECT_STATUS_COLORS: Record<string, string> = {
-  Completed: "#22c55e",
-  "On-Going": "#f59e0b",
-  "Not Yet Started": "#94a3b8",
-}
-
-const DOT_SIZE = 10
-
-const PROJECT_ICONS: Record<string, L.DivIcon> = {}
-
-function getProjectIcon(status: string): L.DivIcon {
-  const cached = PROJECT_ICONS[status]
-  if (cached) return cached
-  const fill = PROJECT_STATUS_COLORS[status] ?? "#94a3b8"
-  const icon = L.divIcon({
-    className: "roberto-dot",
-    html: `<span style="background:${fill};border-color:#0f172a"></span>`,
-    iconSize: L.point(DOT_SIZE, DOT_SIZE, true),
-    iconAnchor: L.point(DOT_SIZE / 2, DOT_SIZE / 2, true),
-    popupAnchor: [0, -(DOT_SIZE / 2 + 2)],
-    tooltipAnchor: [0, -(DOT_SIZE / 2)],
-  })
-  PROJECT_ICONS[status] = icon
-  return icon
-}
-
-const DEFAULT_STATUS_STYLE: React.CSSProperties = { background: "#94a3b820", color: "#94a3b8" }
-
-const STATUS_LABEL_BG: Record<string, React.CSSProperties> = {
-  Completed: { background: "#22c55e20", color: "#22c55e" },
-  "On-Going": { background: "#f59e0b20", color: "#f59e0b" },
-  "Not Yet Started": DEFAULT_STATUS_STYLE,
-}
 
 type Props = {
   boundaries: GeoJSON.FeatureCollection | null
@@ -61,7 +16,10 @@ type Props = {
   selectedCityId: string | null
   onSelectCity: (id: string) => void
   showHazard: boolean
+  show3D?: boolean
+  showWater?: boolean
   showProjects: boolean
+  showCoverageOverlay?: boolean
   incidents?: IncidentRow[]
   showIncidents?: boolean
   evacCenters?: EvacCenterRow[]
@@ -70,157 +28,348 @@ type Props = {
   routeTo?: { lat: number; lng: number } | null
   routeFacilityName?: string | null
   focusLocation?: { lat: number; lng: number } | null
+  userLocation?: { lat: number; lng: number } | null
+  onClusterSelect?: (selection: ClusterSelection) => void
 }
+
+type HoverInfo = { lng: number; lat: number; name: string; score: number }
+
+type PopupInfo =
+  | { type: "project"; lng: number; lat: number; project: Project }
+  | { type: "incident"; lng: number; lat: number; incident: IncidentRow }
+  | { type: "evac"; lng: number; lat: number; center: EvacCenterRow }
+
+const INTERACTIVE_LAYERS = [
+  "boundaries-fill", "clusters", "unclustered-project",
+  INCIDENT_LAYER_ID, EVAC_LAYER_ID,
+]
 
 function getCityScore(cities: City[], cityNorm: string): number {
   return cities.find((c) => c.city_norm === cityNorm)?.effective_coverage_score ?? 0
 }
 
-function createClusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
-  const count = cluster.getChildCount()
-  let size = 36
-  let className = "roberto-cluster roberto-cluster--sm"
-
-  if (count >= 100) {
-    size = 48
-    className = "roberto-cluster roberto-cluster--lg"
-  } else if (count >= 30) {
-    size = 42
-    className = "roberto-cluster roberto-cluster--md"
-  }
-
-  return L.divIcon({
-    html: `<span>${count}</span>`,
-    className,
-    iconSize: L.point(size, size, true),
-  })
-}
-
 export function ChoroplethMap({
   boundaries, hazardZones, allProjects, cities,
   selectedCityId, onSelectCity, showHazard, showProjects,
+  showCoverageOverlay = true,
+  show3D = false,
+  showWater = false,
   incidents = [], showIncidents = false,
   evacCenters = [], showEvacCenters = false,
   routeFrom = null, routeTo = null, routeFacilityName = null,
-  focusLocation = null,
-}: Props): React.JSX.Element | null {
-  const geoJsonRef = useRef<GeoJSONLayer | null>(null)
+  focusLocation = null, userLocation = null,
+  onClusterSelect: _onClusterSelect = () => {},
+}: Props): JSX.Element | null {
+  const mapRef = useRef<MapRef>(null)
+  const [cursor, setCursor] = useState("auto")
+  const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
+  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null)
 
   const selectedCity = cities.find((c) => c.id === selectedCityId)
+  const selectedNorm = selectedCity?.city_norm ?? ""
+
+  const projectsGeoJSON = useMemo((): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: allProjects.map((p) => ({
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: toLngLat(p.latitude, p.longitude) },
+      properties: {
+        id: p.id, name: p.name, status: p.status, progress: p.progress,
+        category: p.category, contractor: p.contractor, budget: p.budget, city_norm: p.city_norm,
+      },
+    })),
+  }), [allProjects])
+
+  const boundaryColorExpr = useMemo((): ExpressionSpecification => {
+    const pairs: string[] = []
+    for (const city of cities) {
+      pairs.push(city.city_norm, scoreColor(city.effective_coverage_score))
+    }
+    return ["match", ["get", "city_norm"], ...pairs, "#334155"] as ExpressionSpecification
+  }, [cities])
+
+  const handleClick = useCallback((event: MapMouseEvent) => {
+    const feature = (event.features as GeoJSONFeature[] | undefined)?.[0]
+    if (!feature?.layer) {
+      setPopupInfo(null)
+      return
+    }
+
+    const layerId = feature.layer.id
+
+    if (layerId === "boundaries-fill") {
+      const cityNorm = feature.properties?.city_norm
+      if (typeof cityNorm !== "string") return
+      const city = cities.find((c) => c.city_norm === cityNorm)
+      if (city) onSelectCity(city.id)
+      return
+    }
+
+    if (layerId === "clusters") {
+      const clusterId = feature.properties?.cluster_id
+      if (typeof clusterId !== "number") return
+      const source = mapRef.current?.getSource("projects") as GeoJSONSource | undefined
+      if (!source) return
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err || zoom == null) return
+        if (feature.geometry.type !== "Point") return
+        const lng = feature.geometry.coordinates[0]
+        const lat = feature.geometry.coordinates[1]
+        if (lng == null || lat == null) return
+        mapRef.current?.easeTo({ center: [lng, lat], zoom, duration: 500 })
+      })
+      return
+    }
+
+    if (layerId === "unclustered-project") {
+      const id = feature.properties?.id
+      if (typeof id !== "string") return
+      const project = allProjects.find((p) => p.id === id)
+      if (!project) return
+      setPopupInfo({ type: "project", lng: event.lngLat.lng, lat: event.lngLat.lat, project })
+      return
+    }
+
+    if (layerId === INCIDENT_LAYER_ID) {
+      const id = feature.properties?.id
+      if (typeof id !== "string") return
+      const incident = incidents.find((inc) => inc.id === id)
+      if (!incident) return
+      setPopupInfo({ type: "incident", lng: event.lngLat.lng, lat: event.lngLat.lat, incident })
+      return
+    }
+
+    if (layerId === EVAC_LAYER_ID) {
+      const id = feature.properties?.id
+      if (typeof id !== "string") return
+      const center = evacCenters.find((ec) => ec.id === id)
+      if (!center) return
+      setPopupInfo({ type: "evac", lng: event.lngLat.lng, lat: event.lngLat.lat, center })
+    }
+  }, [cities, onSelectCity, allProjects, incidents, evacCenters])
+
+  const handleMouseMove = useCallback((event: MapMouseEvent) => {
+    const feature = (event.features as GeoJSONFeature[] | undefined)?.find(
+      (f: GeoJSONFeature) => f.layer?.id === "boundaries-fill",
+    )
+    if (!feature) {
+      setHoverInfo(null)
+      return
+    }
+    const cityNorm = feature.properties?.city_norm
+    if (typeof cityNorm !== "string") { setHoverInfo(null); return }
+    const name = typeof feature.properties?.admin3Name_en === "string"
+      ? feature.properties.admin3Name_en
+      : cityNorm
+    const score = getCityScore(cities, cityNorm)
+    setHoverInfo({ lng: event.lngLat.lng, lat: event.lngLat.lat, name, score })
+  }, [cities])
+
+  const handleMouseEnter = useCallback(() => setCursor("pointer"), [])
+  const handleMouseLeave = useCallback(() => { setCursor("auto"); setHoverInfo(null) }, [])
 
   useEffect(() => {
-    if (!geoJsonRef.current) return
-    geoJsonRef.current.eachLayer((layer) => {
-      const featureLayer = layer as FeatureLayer
-      const cityNorm = featureLayer.feature.properties?.city_norm as string
-      const isSelected = selectedCity?.city_norm === cityNorm
-      featureLayer.setStyle({
-        weight: isSelected ? 3 : 1,
-        color: isSelected ? "#f8fafc" : "#334155",
-        fillOpacity: isSelected ? 0.85 : 0.7,
+    if (!focusLocation) return
+    mapRef.current?.flyTo({ center: toLngLat(focusLocation.lat, focusLocation.lng), zoom: 15, duration: 1200 })
+  }, [focusLocation])
+
+  const [mapLoaded, setMapLoaded] = useState(false)
+
+  const handleMapLoad = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
+    if (!map.getLayer("building-3d")) {
+      map.addLayer({
+        id: "building-3d",
+        source: "composite",
+        "source-layer": "building",
+        type: "fill-extrusion",
+        minzoom: 14,
+        filter: ["==", "extrude", "true"],
+        layout: { visibility: "none" },
+        paint: {
+          "fill-extrusion-color": BUILDING_3D_COLOR,
+          "fill-extrusion-height": [
+            "interpolate", ["linear"], ["zoom"],
+            14, 0, 14.05, ["get", "height"],
+          ],
+          "fill-extrusion-base": [
+            "interpolate", ["linear"], ["zoom"],
+            14, 0, 14.05, ["get", "min_height"],
+          ],
+          "fill-extrusion-opacity": 0.75,
+        },
       })
-    })
-  }, [selectedCityId, selectedCity])
+    }
+    setMapLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    mapRef.current?.easeTo({ pitch: show3D ? 60 : 0, duration: 800 })
+  }, [show3D])
+
+  useEffect(() => {
+    if (!mapLoaded) return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    if (map.getLayer("building-3d")) {
+      map.setLayoutProperty("building-3d", "visibility", show3D ? "visible" : "none")
+    }
+  }, [show3D, mapLoaded])
 
   if (!boundaries) return null
 
-  return (
-    <MapContainer
-      center={[14.5995, 120.9842]}
-      zoom={11}
-      className="h-full w-full"
-      zoomControl={true}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div className="flex h-full items-center justify-center bg-[#0f172a] text-slate-50">
+        <div className="text-center">
+          <p className="text-red-400 mb-2">Map unavailable</p>
+          <p className="text-sm text-slate-500">Mapbox access token is missing</p>
+        </div>
+      </div>
+    )
+  }
 
-      <Pane name="boundaries" style={{ zIndex: 400 }}>
-        <GeoJSON
-          ref={geoJsonRef}
-          data={boundaries}
-          style={(feature) => {
-            const cityNorm = feature?.properties?.city_norm as string
-            const score = getCityScore(cities, cityNorm)
-            const isSelected = selectedCity?.city_norm === cityNorm
-            return {
-              fillColor: scoreColor(score),
-              fillOpacity: isSelected ? 0.85 : 0.7,
-              color: isSelected ? "#f8fafc" : "#334155",
-              weight: isSelected ? 3 : 1,
-            }
-          }}
-          onEachFeature={(feature, layer) => {
-            const cityNorm = feature.properties?.city_norm as string
-            const name = feature.properties?.admin3Name_en as string ?? cityNorm
-            const score = getCityScore(cities, cityNorm)
-            layer.bindTooltip(`${name}: ${(score * 100).toFixed(1)}%`, {
-              sticky: true,
-              className: "!bg-slate-800 !text-slate-50 !border-slate-600 !text-sm",
-            })
-            layer.on("click", () => {
-              const city = cities.find((c) => c.city_norm === cityNorm)
-              if (city) onSelectCity(city.id)
-            })
+  return (
+    <div className="relative h-full w-full">
+    <Map
+      ref={mapRef}
+      mapboxAccessToken={MAPBOX_TOKEN}
+      initialViewState={{ longitude: DEFAULT_CENTER[0], latitude: DEFAULT_CENTER[1], zoom: DEFAULT_ZOOM }}
+      style={{ width: "100%", height: "100%" }}
+      mapStyle={MAP_STYLE}
+      interactiveLayerIds={INTERACTIVE_LAYERS}
+      onClick={handleClick}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onLoad={handleMapLoad}
+      cursor={cursor}
+    >
+      <NavigationControl position="top-right" />
+
+      <Source id="boundaries" type="geojson" data={boundaries}>
+        <Layer
+          id="boundaries-fill"
+          type="fill"
+          paint={{
+            "fill-color": boundaryColorExpr,
+            "fill-opacity": showCoverageOverlay
+              ? ["case", ["==", ["get", "city_norm"], selectedNorm], 0.85, 0.7]
+              : 0,
           }}
         />
-      </Pane>
+        <Layer
+          id="boundaries-outline"
+          type="line"
+          paint={{
+            "line-color": showCoverageOverlay
+              ? ["case", ["==", ["get", "city_norm"], selectedNorm], "#f8fafc", "#334155"]
+              : "#475569",
+            "line-width": showCoverageOverlay
+              ? ["case", ["==", ["get", "city_norm"], selectedNorm], 3, 1]
+              : ["case", ["==", ["get", "city_norm"], selectedNorm], 2, 1],
+          }}
+        />
+      </Source>
 
-      {showHazard && hazardZones && (
-        <Pane name="hazard" style={{ zIndex: 410 }}>
-          <GeoJSON
-            key="hazard"
-            data={hazardZones}
-            style={(feature) => {
-              const varLevel = (feature?.properties?.var_level as number) ?? 1
-              return {
-                fillColor: HAZARD_COLORS[varLevel] ?? "#3b82f6",
-                fillOpacity: 0.45,
-                color: HAZARD_COLORS[varLevel] ?? "#3b82f6",
-                weight: 1,
-              }
+      {hazardZones && (
+        <Source id="hazard" type="geojson" data={hazardZones}>
+          <Layer
+            id="hazard-fill"
+            type="fill"
+            layout={{ visibility: showHazard ? "visible" : "none" }}
+            paint={{
+              "fill-color": [
+                "match", ["get", "var_level"],
+                1, HAZARD_COLORS[1], 2, HAZARD_COLORS[2], 3, HAZARD_COLORS[3], HAZARD_COLORS[2],
+              ],
+              "fill-opacity": 0.4,
             }}
           />
-        </Pane>
+          <Layer
+            id="hazard-outline"
+            type="line"
+            layout={{ visibility: showHazard ? "visible" : "none" }}
+            paint={{
+              "line-color": [
+                "match", ["get", "var_level"],
+                1, HAZARD_COLORS[1], 2, HAZARD_COLORS[2], 3, HAZARD_COLORS[3], HAZARD_COLORS[2],
+              ],
+              "line-opacity": 0.5,
+              "line-width": 0.6,
+            }}
+          />
+          <Layer
+            id="hazard-water"
+            type="fill-extrusion"
+            layout={{ visibility: showWater ? "visible" : "none" }}
+            paint={{
+              "fill-extrusion-color": [
+                "match", ["get", "var_level"],
+                1, "#7dd3fc", 2, "#38bdf8", 3, "#0284c7", "#38bdf8",
+              ],
+              "fill-extrusion-height": [
+                "match", ["get", "var_level"],
+                1, 2, 2, 5, 3, 10, 2,
+              ],
+              "fill-extrusion-base": 0,
+              "fill-extrusion-opacity": 0.55,
+            }}
+          />
+        </Source>
       )}
 
-      {showProjects && (
-        <Pane name="projects" style={{ zIndex: 450 }}>
-          <MarkerClusterGroup
-            chunkedLoading
-            maxClusterRadius={50}
-            spiderfyOnMaxZoom={true}
-            showCoverageOnHover={false}
-            zoomToBoundsOnClick={true}
-            iconCreateFunction={createClusterIcon}
-          >
-            {allProjects.map((p, idx) => (
-              <Marker
-                key={`${p.id}-${idx}`}
-                position={[p.latitude, p.longitude]}
-                icon={getProjectIcon(p.status)}
-                eventHandlers={{
-                  add(e) {
-                    const marker = e.target as L.Marker
-                    if (!marker.getTooltip()) {
-                      marker.bindTooltip(p.name, {
-                        direction: "top",
-                        offset: [0, -4],
-                        className: "roberto-tooltip",
-                      })
-                    }
-                  },
-                }}
-              >
-                <Popup className="roberto-popup" pane="popupPane" maxWidth={320} minWidth={260}>
-                  <ProjectPopupContent project={p} />
-                </Popup>
-              </Marker>
-            ))}
-          </MarkerClusterGroup>
-        </Pane>
-      )}
+      <Source
+        id="projects"
+        type="geojson"
+        data={projectsGeoJSON}
+        cluster={true}
+        clusterMaxZoom={14}
+        clusterRadius={50}
+      >
+        <Layer
+          id="clusters"
+          type="circle"
+          filter={["has", "point_count"]}
+          layout={{ visibility: showProjects ? "visible" : "none" }}
+          paint={{
+            "circle-color": "rgba(15, 23, 42, 0.85)",
+            "circle-radius": ["step", ["get", "point_count"], 18, 30, 22, 100, 28],
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "rgba(59, 130, 246, 0.6)",
+          }}
+        />
+        <Layer
+          id="cluster-count"
+          type="symbol"
+          filter={["has", "point_count"]}
+          layout={{
+            visibility: showProjects ? "visible" : "none",
+            "text-field": ["concat", ["get", "point_count_abbreviated"]],
+            "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+            "text-size": 12,
+          }}
+          paint={{ "text-color": "#f8fafc" }}
+        />
+        <Layer
+          id="unclustered-project"
+          type="circle"
+          filter={["!", ["has", "point_count"]]}
+          layout={{ visibility: showProjects ? "visible" : "none" }}
+          paint={{
+            "circle-color": [
+              "match", ["get", "status"],
+              "Completed", "#22c55e", "On-Going", "#f59e0b", "Not Yet Started", "#94a3b8", "#94a3b8",
+            ],
+            "circle-radius": 5,
+            "circle-stroke-width": 1,
+            "circle-stroke-color": "#0f172a",
+            "circle-opacity": 0.92,
+          }}
+        />
+      </Source>
 
       <IncidentMapLayers
         incidents={incidents}
@@ -231,37 +380,97 @@ export function ChoroplethMap({
 
       <RouteOverlay from={routeFrom} to={routeTo} facilityName={routeFacilityName} />
 
-      {focusLocation && <MapFlyTo lat={focusLocation.lat} lng={focusLocation.lng} />}
-    </MapContainer>
+      {userLocation && (
+        <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+          <div className="roberto-user-marker">
+            <span className="roberto-user-marker__pulse" />
+            <span className="roberto-user-marker__dot" />
+          </div>
+        </Marker>
+      )}
+
+      {hoverInfo && !popupInfo && (
+        <Popup
+          longitude={hoverInfo.lng}
+          latitude={hoverInfo.lat}
+          closeButton={false}
+          closeOnClick={false}
+          offset={8}
+          anchor="bottom"
+        >
+          <div className="text-sm text-slate-50">
+            {hoverInfo.name}: {(hoverInfo.score * 100).toFixed(1)}%
+          </div>
+        </Popup>
+      )}
+
+      {popupInfo?.type === "project" && (
+        <Popup
+          longitude={popupInfo.lng} latitude={popupInfo.lat}
+          closeButton closeOnClick={false} onClose={() => setPopupInfo(null)}
+          maxWidth="320px" anchor="bottom" offset={12}
+        >
+          <ProjectPopupContent project={popupInfo.project} />
+        </Popup>
+      )}
+
+      {popupInfo?.type === "incident" && (
+        <Popup
+          longitude={popupInfo.lng} latitude={popupInfo.lat}
+          closeButton closeOnClick={false} onClose={() => setPopupInfo(null)}
+          maxWidth="300px" anchor="bottom" offset={12}
+        >
+          <IncidentPopupContent incident={popupInfo.incident} />
+        </Popup>
+      )}
+
+      {popupInfo?.type === "evac" && (
+        <Popup
+          longitude={popupInfo.lng} latitude={popupInfo.lat}
+          closeButton closeOnClick={false} onClose={() => setPopupInfo(null)}
+          maxWidth="280px" anchor="bottom" offset={12}
+        >
+          <EvacPopupContent center={popupInfo.center} />
+        </Popup>
+      )}
+    </Map>
+    {showHazard && <HazardLegend />}
+    {show3D && (
+      <div className="absolute bottom-3 left-3 z-10 rounded-lg border border-purple-500/30 bg-purple-900/80 px-3 py-1.5 text-[11px] text-purple-200 backdrop-blur-sm">
+        3D buildings are from Mapbox — hazard coloring is illustrative
+      </div>
+    )}
+    </div>
   )
 }
 
-function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap()
-  useEffect(() => {
-    map.flyTo([lat, lng], 15, { duration: 1.2 })
-  }, [map, lat, lng])
-  return null
+const DEFAULT_STATUS_STYLE: React.CSSProperties = { background: "#94a3b820", color: "#94a3b8" }
+
+const STATUS_LABEL_BG: Record<string, React.CSSProperties> = {
+  Completed: { background: "#22c55e20", color: "#22c55e" },
+  "On-Going": { background: "#f59e0b20", color: "#f59e0b" },
+  "Not Yet Started": DEFAULT_STATUS_STYLE,
+}
+
+const INCIDENT_COLORS: Record<string, string> = {
+  PING: "#ef4444", VERIFIED: "#3b82f6", PRIORITIZED: "#f97316",
+  ASSIGNED: "#a855f7", RESOLVED: "#22c55e",
+}
+
+const EVAC_STATUS_LABELS: Record<string, { bg: string; fg: string }> = {
+  open: { bg: "#22c55e20", fg: "#22c55e" },
+  full: { bg: "#f59e0b20", fg: "#f59e0b" },
+  closed: { bg: "#ef444420", fg: "#ef4444" },
 }
 
 function ProjectPopupContent({ project: p }: { project: Project }) {
   const statusStyle = STATUS_LABEL_BG[p.status] ?? DEFAULT_STATUS_STYLE
-
   return (
-    <div className="roberto-popup-inner">
-      <div className="text-sm font-semibold leading-snug text-slate-100 mb-2">
-        {p.name}
-      </div>
+    <div>
+      <div className="text-sm font-semibold leading-snug text-slate-100 mb-2">{p.name}</div>
       <div className="flex items-center gap-2 mb-2">
-        <span
-          className="rounded px-1.5 py-0.5 text-[10px] font-medium"
-          style={statusStyle}
-        >
-          {p.status}
-        </span>
-        <span className="text-xs font-mono text-slate-300">
-          {p.progress.toFixed(1)}%
-        </span>
+        <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={statusStyle}>{p.status}</span>
+        <span className="text-xs font-mono text-slate-300">{p.progress.toFixed(1)}%</span>
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
         <PopupField label="Budget" value={formatPHP(p.budget)} />
@@ -276,6 +485,83 @@ function ProjectPopupContent({ project: p }: { project: Project }) {
   )
 }
 
+function IncidentPopupContent({ incident: inc }: { incident: IncidentRow }) {
+  const color = INCIDENT_COLORS[inc.status] ?? "#94a3b8"
+  return (
+    <div>
+      <div className="text-sm font-semibold leading-snug text-slate-100 mb-2">{inc.title}</div>
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+          style={{ background: `${color}20`, color }}
+        >{inc.status}</span>
+        {inc.priority != null && <span className="text-xs font-mono text-slate-400">P{inc.priority}</span>}
+      </div>
+      {inc.description && (
+        <p className="text-xs text-slate-300 leading-relaxed mb-2 line-clamp-3">{inc.description}</p>
+      )}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+        <PopupField label="Reported" value={formatTime(inc.created_at)} />
+        <PopupField label="Updated" value={formatTime(inc.updated_at)} />
+      </div>
+    </div>
+  )
+}
+
+function EvacPopupContent({ center: ec }: { center: EvacCenterRow }) {
+  const statusStyle = EVAC_STATUS_LABELS[ec.status] ?? { bg: "#94a3b820", fg: "#94a3b8" }
+  const loadPct = ec.capacity ? Math.round((ec.current_load / ec.capacity) * 100) : null
+
+  return (
+    <div>
+      <div className="text-sm font-semibold leading-snug text-slate-100 mb-2">{ec.name}</div>
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+          style={{ background: statusStyle.bg, color: statusStyle.fg }}
+        >{ec.status}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+        <PopupField label="Capacity" value={ec.capacity != null ? String(ec.capacity) : "N/A"} />
+        <PopupField label="Current Load" value={String(ec.current_load)} />
+        {loadPct != null && (
+          <div className="col-span-2">
+            <span className="text-slate-500 uppercase tracking-wider text-[9px]">Utilization</span>
+            <div className="mt-0.5 h-1.5 w-full rounded-full bg-slate-700 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.min(loadPct, 100)}%`,
+                  background: loadPct >= 90 ? "#ef4444" : loadPct >= 70 ? "#f59e0b" : "#22c55e",
+                }}
+              />
+            </div>
+            <div className="text-slate-300 text-[10px] mt-0.5">{loadPct}%</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function HazardLegend(): JSX.Element {
+  return (
+    <div className="absolute bottom-3 right-3 z-10 rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2.5 backdrop-blur-sm">
+      <div className="text-[11px] font-semibold text-slate-200 mb-1.5">Hazard Level</div>
+      {([
+        [HAZARD_COLORS[1], "Low"],
+        [HAZARD_COLORS[2], "Medium"],
+        [HAZARD_COLORS[3], "High"],
+      ] as const).map(([color, label]) => (
+        <div key={label} className="flex items-center gap-2 py-0.5">
+          <span className="h-3 w-4 rounded-sm" style={{ backgroundColor: color, opacity: 0.85 }} />
+          <span className="text-[11px] text-slate-300">{label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function PopupField({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -285,3 +571,10 @@ function PopupField({ label, value }: { label: string; value: string }) {
   )
 }
 
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  } catch {
+    return iso
+  }
+}

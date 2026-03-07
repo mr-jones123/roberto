@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react"
 import type React from "react"
-import { createIncident, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
-import type { EvacCenter, FacilityType, IncidentRow } from "../../lib/types"
+import { createIncident, fetchCurrentWeather, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
+import type { EvacCenter, FacilityType, IncidentRow, WeatherCurrent } from "../../lib/types"
 import { useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
 
@@ -13,15 +13,38 @@ type Props = {
   onLogout: () => void
   onSelectFacility: (from: RoutePoint, to: RoutePoint, name: string) => void
   onFocusPing: (lat: number, lng: number) => void
+  onUserLocationChange: (lat: number, lng: number) => void
+  showFloodContext: boolean
+  onToggleFloodContext: () => void
+  showWeatherContext: boolean
+  onToggleWeatherContext: () => void
 }
 
-export function ReporterPanel({ token, userId, onLogout, onSelectFacility, onFocusPing }: Props): JSX.Element {
+type LocationAccessState = "idle" | "granted" | "denied" | "unavailable"
+
+export function ReporterPanel({
+  token,
+  userId,
+  onLogout,
+  onSelectFacility,
+  onFocusPing,
+  onUserLocationChange,
+  showFloodContext,
+  onToggleFloodContext,
+  showWeatherContext,
+  onToggleWeatherContext,
+}: Props): JSX.Element {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [lat, setLat] = useState("")
-  const [lng, setLng] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [locating, setLocating] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [locationState, setLocationState] = useState<LocationAccessState>("idle")
+  const [currentLocation, setCurrentLocation] = useState<RoutePoint | null>(null)
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherError, setWeatherError] = useState<string | null>(null)
+  const [weather, setWeather] = useState<WeatherCurrent | null>(null)
   const [myPings, setMyPings] = useState<IncidentRow[]>([])
   const [evacCache, setEvacCache] = useState<Record<string, EvacCenter[]>>({})
 
@@ -51,6 +74,37 @@ export function ReporterPanel({ token, userId, onLogout, onSelectFacility, onFoc
     }
   }, [streamIncidents, userId])
 
+  useEffect(() => {
+    if (!showWeatherContext || currentLocation === null) {
+      setWeatherLoading(false)
+      setWeatherError(null)
+      return
+    }
+
+    let active = true
+    setWeatherLoading(true)
+    setWeatherError(null)
+
+    fetchCurrentWeather(currentLocation.lat, currentLocation.lng)
+      .then((res) => {
+        if (!active) return
+        setWeather(res)
+      })
+      .catch((err: unknown) => {
+        if (!active) return
+        setWeatherError(err instanceof Error ? err.message : "Unable to load weather")
+      })
+      .finally(() => {
+        if (active) {
+          setWeatherLoading(false)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [showWeatherContext, currentLocation])
+
   const loadEvac = (incident: IncidentRow) => {
     if (evacCache[incident.id]) return
     fetchNearestEvacCenters(incident.latitude, incident.longitude)
@@ -60,25 +114,89 @@ export function ReporterPanel({ token, userId, onLogout, onSelectFacility, onFoc
       .catch(() => {})
   }
 
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const requestCurrentLocation = async (): Promise<RoutePoint | null> => {
+    setFormError(null)
+
+    if (typeof window === "undefined" || !window.navigator.geolocation) {
+      setLocationState("unavailable")
+      setFormError("Location services are not available on this device")
+      return null
+    }
+
+    setLocating(true)
+
+    return new Promise((resolve) => {
+      window.navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const next = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }
+
+          setLocationState("granted")
+          setCurrentLocation(next)
+          setLocationAccuracy(position.coords.accuracy)
+          onUserLocationChange(next.lat, next.lng)
+          onFocusPing(next.lat, next.lng)
+          setLocating(false)
+          resolve(next)
+        },
+        (error) => {
+          setLocating(false)
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationState("denied")
+            setFormError("Location permission denied. Please allow location access to request help from your current position.")
+            resolve(null)
+            return
+          }
+
+          setLocationState("unavailable")
+          setFormError("Unable to get your current location. Please try again in a few seconds.")
+          resolve(null)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000,
+        },
+      )
+    })
+  }
+
+  const handleWeatherToggle = () => {
+    const nextVisible = !showWeatherContext
+    onToggleWeatherContext()
+
+    if (nextVisible && currentLocation === null) {
+      void requestCurrentLocation()
+    }
+  }
+
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     setFormError(null)
 
-    const latitude = parseFloat(lat)
-    const longitude = parseFloat(lng)
-    if (isNaN(latitude) || isNaN(longitude)) {
-      setFormError("Latitude and longitude must be valid numbers")
+    let targetLocation = currentLocation
+    if (!targetLocation) {
+      targetLocation = await requestCurrentLocation()
+    }
+
+    if (!targetLocation) {
+      setFormError("Allow location access to send a ping from your current location")
       return
     }
 
     setSubmitting(true)
-    createIncident(token, { title, description, latitude, longitude })
+    createIncident(token, {
+      title,
+      description,
+      latitude: targetLocation.lat,
+      longitude: targetLocation.lng,
+    })
       .then((res) => {
         setMyPings((prev) => [res.incident, ...prev])
         setTitle("")
         setDescription("")
-        setLat("")
-        setLng("")
       })
       .catch((err: unknown) => {
         setFormError(err instanceof Error ? err.message : "Failed to create incident")
@@ -108,6 +226,78 @@ export function ReporterPanel({ token, userId, onLogout, onSelectFacility, onFoc
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
             New Ping
           </h3>
+          <div className="mb-3 rounded-lg border border-[#334155] bg-[#0f172a] p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Flood Context
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Keep this off by default for a cleaner map.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onToggleFloodContext}
+                className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  showFloodContext
+                    ? "border-blue-500/40 bg-blue-500/10 text-blue-300"
+                    : "border-[#334155] text-slate-400 hover:border-[#475569]"
+                }`}
+              >
+                {showFloodContext ? "Visible" : "Hidden"}
+              </button>
+            </div>
+          </div>
+          <div className="mb-3 rounded-lg border border-[#334155] bg-[#0f172a] p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Current Weather
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Show rain and wind near your location.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleWeatherToggle}
+                className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  showWeatherContext
+                    ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-300"
+                    : "border-[#334155] text-slate-400 hover:border-[#475569]"
+                }`}
+              >
+                {showWeatherContext ? "Visible" : "Hidden"}
+              </button>
+            </div>
+            {showWeatherContext && (
+              <div className="mt-2 rounded-md border border-[#334155] bg-[#020617] px-2.5 py-2">
+                {currentLocation === null ? (
+                  <p className="text-[11px] text-slate-500">Enable location to view current weather.</p>
+                ) : weatherLoading ? (
+                  <p className="text-[11px] text-slate-400">Loading weather...</p>
+                ) : weatherError ? (
+                  <p className="text-[11px] text-amber-300">{weatherError}</p>
+                ) : weather ? (
+                  <>
+                    <p className="text-[11px] font-semibold text-slate-200">{weather.current.weather_label}</p>
+                    <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                      <span>Temp: {weather.current.temperature_c.toFixed(1)} C</span>
+                      <span>Feels: {weather.current.feels_like_c.toFixed(1)} C</span>
+                      <span>Rain: {weather.current.rain_mm.toFixed(1)} mm</span>
+                      <span>Wind: {weather.current.wind_kph.toFixed(1)} kph</span>
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      Updated {new Date(weather.current.observed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-slate-500">No weather data yet.</p>
+                )}
+              </div>
+            )}
+          </div>
           <div className="space-y-2">
             <input
               type="text"
@@ -126,25 +316,45 @@ export function ReporterPanel({ token, userId, onLogout, onSelectFacility, onFoc
               rows={2}
               required
             />
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                data-testid="report-location-lat"
-                type="text"
-                value={lat}
-                onChange={(e) => setLat(e.target.value)}
-                className="rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-amber-500/50"
-                placeholder="Latitude"
-                required
-              />
-              <input
-                data-testid="report-location-lng"
-                type="text"
-                value={lng}
-                onChange={(e) => setLng(e.target.value)}
-                className="rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-amber-500/50"
-                placeholder="Longitude"
-                required
-              />
+            <div className="rounded-lg border border-[#334155] bg-[#0f172a] p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Current Location
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    We only use this when you submit a ping.
+                  </p>
+                </div>
+                <button
+                  data-testid="report-use-location"
+                  type="button"
+                  onClick={() => { void requestCurrentLocation() }}
+                  disabled={locating}
+                  className="rounded-md border border-[#334155] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-300 transition-colors hover:border-[#475569] hover:bg-[#1e293b] disabled:opacity-50"
+                >
+                  {locating ? "Locating..." : currentLocation ? "Refresh" : "Use My Location"}
+                </button>
+              </div>
+              {currentLocation ? (
+                <div className="mt-1.5">
+                  <p className="font-mono text-[11px] text-slate-300">
+                    {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+                  </p>
+                  {locationAccuracy != null && (
+                    <p className="text-[10px] text-slate-500">Accuracy: {Math.round(locationAccuracy)} m</p>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  Tap "Use My Location" and allow permission.
+                </p>
+              )}
+              {locationState === "denied" && (
+                <p className="mt-1.5 text-[10px] text-amber-300">
+                  Location is blocked. Enable location permission in your browser settings.
+                </p>
+              )}
             </div>
           </div>
 

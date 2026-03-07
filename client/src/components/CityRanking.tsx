@@ -14,9 +14,9 @@ export function CityRanking({ cities, selectedCityId, onSelectCity }: Props): JS
   return (
     <div className="flex h-full flex-col bg-[#1e293b] text-slate-50">
       <div className="border-b border-[#334155] px-4 py-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-          City Rankings
-        </h2>
+         <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+           Coverage Rankings
+         </h2>
         <p className="mt-1 text-xs text-slate-500">
           {cities.length} cities &middot; {totalProjects.toLocaleString()} projects
         </p>

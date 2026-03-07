@@ -1,4 +1,4 @@
-import type { AnalysisResponse, City, CityDetail, EvacCenter, EvacCenterRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, Meta, OsrmRouteResponse, Project } from "./types"
+import type { AnalysisResponse, City, CityDetail, EvacCenter, EvacCenterRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, Meta, OsrmRouteResponse, Project, WeatherCurrent } from "./types"
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -114,6 +114,10 @@ export function fetchRoute(
   profile: "foot" | "driving" | "bike" = "foot",
 ): Promise<OsrmRouteResponse> {
   return fetchJson(`/api/route?profile=${profile}&from=${fromLng},${fromLat}&to=${toLng},${toLat}`)
+}
+
+export function fetchCurrentWeather(lat: number, lng: number): Promise<WeatherCurrent> {
+  return fetchJson(`/api/weather/current?lat=${lat}&lng=${lng}`)
 }
 
 export function verifyIncident(

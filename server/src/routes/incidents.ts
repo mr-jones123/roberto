@@ -29,14 +29,25 @@ export const createIncidentsRouter = (store: IncidentStore, engine: LifecycleEng
         return;
       }
 
-      const incident = store.createIncident({
-        id: randomUUID(),
-        title: title.trim(),
-        description: description.trim(),
-        latitude,
-        longitude,
-        reporter_id: req.user!.id,
-      });
+      let incident;
+      try {
+        incident = store.createIncident({
+          id: randomUUID(),
+          title: title.trim(),
+          description: description.trim(),
+          latitude,
+          longitude,
+          reporter_id: req.user!.id,
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Database error";
+        const isFk = message.includes("FOREIGN KEY");
+        console.error("[Incidents] createIncident failed:", message);
+        res.status(isFk ? 401 : 500).json({
+          error: isFk ? "Your session is invalid. Please sign out and sign in again." : "Failed to create incident",
+        });
+        return;
+      }
 
       store.appendEvent({
         id: randomUUID(),
