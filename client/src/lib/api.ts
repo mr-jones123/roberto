@@ -1,4 +1,4 @@
-import type { AnalysisResponse, City, CityDetail, EvacCenter, EvacCenterRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, Meta, OsrmRouteResponse, Project, WeatherCurrent } from "./types"
+import type { AnalysisResponse, City, CityDetail, ConnectionInviteRow, ConversationRow, EvacCenter, EvacCenterRow, HelpNodeRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, MessageRow, Meta, OsrmRouteResponse, Project, WeatherCurrent } from "./types"
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -190,4 +190,111 @@ export function fetchIncidentEvents(
   return authFetch(`/api/incidents/${incidentId}`, token).then(
     (res) => ({ events: (res as { events: IncidentEventRow[] }).events })
   )
+}
+
+// --- Node Connection Chat API ---
+
+// Nodes
+export function registerNode(
+  token: string,
+  data: { latitude: number; longitude: number },
+): Promise<{ node: HelpNodeRow }> {
+  return authFetch("/api/nodes", token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export function fetchNearbyNodes(
+  token: string,
+  lat: number,
+  lng: number,
+  radiusKm = 10,
+): Promise<{ nodes: HelpNodeRow[] }> {
+  return authFetch(`/api/nodes/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`, token)
+}
+
+export function fetchNode(token: string, id: string): Promise<{ node: HelpNodeRow }> {
+  return authFetch(`/api/nodes/${id}`, token)
+}
+
+// Invites
+export function createInvite(
+  token: string,
+  recipientNodeId: string,
+): Promise<{ invite: ConnectionInviteRow }> {
+  return authFetch("/api/invites", token, {
+    method: "POST",
+    body: JSON.stringify({ recipient_node_id: recipientNodeId }),
+  })
+}
+
+export function fetchInvites(token: string): Promise<{ invites: ConnectionInviteRow[] }> {
+  return authFetch("/api/invites", token)
+}
+
+export function respondToInvite(
+  token: string,
+  id: string,
+  action: "accepted" | "rejected",
+  version: number,
+): Promise<{ invite: ConnectionInviteRow; conversation?: ConversationRow }> {
+  return authFetch(`/api/invites/${id}/respond`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ action, version }),
+  })
+}
+
+export function cancelInvite(
+  token: string,
+  id: string,
+  version: number,
+): Promise<{ invite: ConnectionInviteRow }> {
+  return authFetch(`/api/invites/${id}/cancel`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ version }),
+  })
+}
+
+// Conversations
+export function fetchConversations(token: string): Promise<{ conversations: ConversationRow[] }> {
+  return authFetch("/api/conversations", token)
+}
+
+export function fetchMessages(
+  token: string,
+  conversationId: string,
+  before?: string,
+): Promise<{ messages: MessageRow[] }> {
+  const url = before
+    ? `/api/conversations/${conversationId}/messages?before=${before}`
+    : `/api/conversations/${conversationId}/messages`
+  return authFetch(url, token)
+}
+
+export function sendMessage(
+  token: string,
+  conversationId: string,
+  clientMsgId: string,
+  body: string,
+): Promise<{ message: MessageRow }> {
+  return authFetch(`/api/conversations/${conversationId}/messages`, token, {
+    method: "POST",
+    body: JSON.stringify({ client_msg_id: clientMsgId, body }),
+  })
+}
+
+// Catch-up
+export function fetchInvitesCatchup(
+  token: string,
+  since: string,
+): Promise<{ invites: ConnectionInviteRow[] }> {
+  return authFetch(`/api/invites?since=${encodeURIComponent(since)}`, token)
+}
+
+export function fetchConversationsCatchup(
+  token: string,
+  since: string,
+): Promise<{ messages: MessageRow[] }> {
+  return authFetch(`/api/conversations/messages?since=${encodeURIComponent(since)}`, token)
 }

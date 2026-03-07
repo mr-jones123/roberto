@@ -80,10 +80,50 @@ export type IncidentRow = {
   updated_at: string
 }
 
-export type SSEEvent = {
-  type: "incident_created" | "incident_updated"
-  incident: IncidentRow
+export type HelpNodeRow = {
+  id: string
+  user_id: string
+  latitude: number
+  longitude: number
+  status: "active" | "inactive"
+  created_at: string
+  updated_at: string
 }
+
+export type InviteStatus = "pending" | "accepted" | "rejected" | "cancelled" | "expired"
+
+export type ConnectionInviteRow = {
+  id: string
+  sender_node_id: string
+  recipient_node_id: string
+  status: InviteStatus
+  version: number
+  expires_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ConversationRow = {
+  id: string
+  invite_id: string
+  created_at: string
+}
+
+export type MessageRow = {
+  id: string
+  conversation_id: string
+  sender_id: string
+  client_msg_id: string
+  body: string
+  created_at: string
+}
+
+export type SSEEvent =
+  | { type: "incident_created"; incident: IncidentRow }
+  | { type: "incident_updated"; incident: IncidentRow }
+  | { type: "invite_created"; invite: ConnectionInviteRow }
+  | { type: "invite_updated"; invite: ConnectionInviteRow; conversation?: ConversationRow }
+  | { type: "message_created"; message: MessageRow; conversationId: string }
 
 export type AuthUser = {
   id: string
