@@ -419,6 +419,16 @@ export class IncidentStore {
     return stmt.all({ nodeId }) as ConnectionInviteRow[];
   }
 
+  listInvitesSince(nodeId: string, since: string): ConnectionInviteRow[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM connection_invites
+      WHERE (sender_node_id = @nodeId OR recipient_node_id = @nodeId)
+        AND updated_at > @since
+      ORDER BY updated_at ASC
+    `);
+    return stmt.all({ nodeId, since }) as ConnectionInviteRow[];
+  }
+
   updateInviteStatus(
     id: string,
     status: InviteStatus,
@@ -481,6 +491,15 @@ export class IncidentStore {
     return stmt.all(userId) as ConversationRow[];
   }
 
+  listParticipantUserIds(conversationId: string): string[] {
+    const stmt = this.db.prepare(`
+      SELECT user_id FROM conversation_participants
+      WHERE conversation_id = @conversationId
+    `);
+    const rows = stmt.all({ conversationId }) as Array<{ user_id: string }>;
+    return rows.map((row) => row.user_id);
+  }
+
   createMessage(input: CreateMessageInput): MessageRow {
     const insertStmt = this.db.prepare(`
       INSERT OR IGNORE INTO messages (id, conversation_id, sender_id, client_msg_id, body)
@@ -520,5 +539,27 @@ export class IncidentStore {
       LIMIT @limit
     `);
     return stmt.all({ conversationId, limit }) as MessageRow[];
+  }
+
+  listMessagesSince(conversationIds: string[], since: string): MessageRow[] {
+    if (conversationIds.length === 0) {
+      return [];
+    }
+
+    const placeholders = conversationIds.map((_, index) => `@conversationId${index}`).join(", ");
+    const params: Record<string, unknown> = { since };
+
+    for (const [index, conversationId] of conversationIds.entries()) {
+      params[`conversationId${index}`] = conversationId;
+    }
+
+    const stmt = this.db.prepare(`
+      SELECT * FROM messages
+      WHERE conversation_id IN (${placeholders})
+        AND created_at > @since
+      ORDER BY created_at ASC
+    `);
+
+    return stmt.all(params) as MessageRow[];
   }
 }

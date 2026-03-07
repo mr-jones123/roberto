@@ -9,6 +9,20 @@ import type { EventBus } from "../realtime/event-bus.js";
 
 const paramId = (params: Record<string, unknown>): string => params.id as string;
 
+const getCatchupSince = (value: unknown): string => {
+  const fallback = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+
+  return parsed.toISOString();
+};
+
 export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngine, bus: EventBus): Router => {
   const router = Router();
 
@@ -54,7 +68,7 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
         expires_at: expiresAt,
       });
 
-      bus.publish({ type: "invite_created", invite });
+      bus.publishToUser(recipientNode.user_id, { type: "invite_created", invite });
 
       res.status(201).json({ invite });
     }
@@ -72,6 +86,23 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
       }
 
       const invites = store.listInvitesForNode(node.id);
+      res.json({ invites });
+    }
+  );
+
+  router.get(
+    "/invites/catchup",
+    requireAuth,
+    requireRole(INCIDENT_ROLE.REPORTER),
+    (req, res) => {
+      const node = store.getUserNode(req.user!.id);
+      if (!node) {
+        res.json({ invites: [] });
+        return;
+      }
+
+      const since = getCatchupSince(req.query.since);
+      const invites = store.listInvitesSince(node.id, since);
       res.json({ invites });
     }
   );
@@ -105,6 +136,12 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
         return;
       }
 
+      const senderNode = store.getHelpNode(invite.sender_node_id);
+      if (!senderNode) {
+        res.status(404).json({ error: "Sender node not found" });
+        return;
+      }
+
       const result = inviteEngine.transition(
         invite.id,
         action as "accepted" | "rejected",
@@ -122,7 +159,11 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
         conversation = store.getConversationByInviteId(invite.id);
       }
 
-      bus.publish({ type: "invite_updated", invite: result.invite, conversation });
+      bus.publishToUsers([senderNode.user_id, recipientNode.user_id], {
+        type: "invite_updated",
+        invite: result.invite,
+        conversation,
+      });
 
       res.json({ invite: result.invite, ...(conversation ? { conversation } : {}) });
     }
@@ -152,6 +193,8 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
         return;
       }
 
+      const cancelRecipientNode = store.getHelpNode(invite.recipient_node_id);
+
       const result = inviteEngine.transition(
         invite.id,
         "cancelled",
@@ -164,7 +207,9 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
         return;
       }
 
-      bus.publish({ type: "invite_updated", invite: result.invite });
+      if (cancelRecipientNode) {
+        bus.publishToUser(cancelRecipientNode.user_id, { type: "invite_updated", invite: result.invite });
+      }
 
       res.json({ invite: result.invite });
     }
@@ -181,6 +226,19 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
     (req, res) => {
       const conversations = store.listConversationsForUser(req.user!.id);
       res.json({ conversations });
+    }
+  );
+
+  router.get(
+    "/conversations/catchup",
+    requireAuth,
+    requireRole(INCIDENT_ROLE.REPORTER),
+    (req, res) => {
+      const since = getCatchupSince(req.query.since);
+      const conversations = store.listConversationsForUser(req.user!.id);
+      const conversationIds = conversations.map((conversation) => conversation.id);
+      const messages = store.listMessagesSince(conversationIds, since);
+      res.json({ messages });
     }
   );
 
@@ -236,7 +294,8 @@ export const createChatRouter = (store: IncidentStore, inviteEngine: InviteEngin
         body: body.trim(),
       });
 
-      bus.publish({ type: "message_created", message, conversationId });
+      const participantUserIds = store.listParticipantUserIds(conversationId);
+      bus.publishToUsers(participantUserIds, { type: "message_created", message, conversationId });
 
       res.status(201).json({ message });
     }
