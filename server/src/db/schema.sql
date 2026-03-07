@@ -60,6 +60,56 @@ CREATE TABLE IF NOT EXISTS evac_centers (
   updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+-- ---------------------------------------------------------------------------
+-- Node Connection & Chat domain
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS help_nodes (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id),
+  latitude    REAL NOT NULL,
+  longitude   REAL NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'active'
+              CHECK (status IN ('active', 'inactive')),
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS connection_invites (
+  id                  TEXT PRIMARY KEY,
+  sender_node_id      TEXT NOT NULL REFERENCES help_nodes(id),
+  recipient_node_id   TEXT NOT NULL REFERENCES help_nodes(id),
+  status              TEXT NOT NULL DEFAULT 'pending'
+                      CHECK (status IN ('pending', 'accepted', 'rejected', 'cancelled', 'expired')),
+  version             INTEGER NOT NULL DEFAULT 1,
+  expires_at          TEXT,
+  created_at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id          TEXT PRIMARY KEY,
+  invite_id   TEXT NOT NULL REFERENCES connection_invites(id),
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS conversation_participants (
+  id                TEXT PRIMARY KEY,
+  conversation_id   TEXT NOT NULL REFERENCES conversations(id),
+  user_id           TEXT NOT NULL REFERENCES users(id),
+  created_at        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id                TEXT PRIMARY KEY,
+  conversation_id   TEXT NOT NULL REFERENCES conversations(id),
+  sender_id         TEXT NOT NULL REFERENCES users(id),
+  client_msg_id     TEXT NOT NULL,
+  body              TEXT NOT NULL,
+  created_at        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE(conversation_id, client_msg_id)
+);
+
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
 CREATE INDEX IF NOT EXISTS idx_incidents_reporter ON incidents(reporter_id);
@@ -69,3 +119,13 @@ CREATE INDEX IF NOT EXISTS idx_assignments_incident ON assignments(incident_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_responder ON assignments(responder_id);
 CREATE INDEX IF NOT EXISTS idx_evac_centers_status ON evac_centers(status);
 CREATE INDEX IF NOT EXISTS idx_evac_centers_type ON evac_centers(type);
+
+CREATE INDEX IF NOT EXISTS idx_help_nodes_user ON help_nodes(user_id);
+CREATE INDEX IF NOT EXISTS idx_help_nodes_location ON help_nodes(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_connection_invites_recipient_status ON connection_invites(recipient_node_id, status);
+CREATE INDEX IF NOT EXISTS idx_connection_invites_sender ON connection_invites(sender_node_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_invite ON conversations(invite_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_participants_conversation ON conversation_participants(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_participants_user ON conversation_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, id);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
