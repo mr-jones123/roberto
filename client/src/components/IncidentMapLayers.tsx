@@ -162,7 +162,7 @@ export function IncidentMapLayers({
               "#ecfccb",
               "#0f172a",
             ],
-            "circle-opacity": 0.8,
+            "circle-opacity": 1,
             "circle-pitch-alignment": "viewport",
             "circle-pitch-scale": "viewport",
           }}
@@ -180,7 +180,7 @@ export function IncidentMapLayers({
             "circle-color": "#ef4444",
             "circle-stroke-width": 2,
             "circle-stroke-color": "#0f172a",
-            "circle-opacity": 0.75,
+            "circle-opacity": 1,
             "circle-pitch-alignment": "viewport",
             "circle-pitch-scale": "viewport",
           }}
@@ -203,7 +203,7 @@ export function IncidentMapLayers({
             "circle-color": "#ef4444",
             "circle-stroke-width": 3,
             "circle-stroke-color": "#fca5a5",
-            "circle-opacity": 0.85,
+            "circle-opacity": 1,
             "circle-pitch-alignment": "viewport",
             "circle-pitch-scale": "viewport",
           }}

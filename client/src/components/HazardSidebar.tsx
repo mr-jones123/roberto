@@ -65,22 +65,6 @@ export function HazardSidebar({ hazardZones, cities, onClose }: Props): JSX.Elem
         "Three major flood systems affect the metro: the Marikina-Pasig River (east), the Tullahan River (north), and Manila Bay tidal surges (west). Know which one affects your city.",
       ].join(" ")
 
-  const metroActionItems = locale === "tl"
-    ? [
-        "Maghanda ng go-bag para sa bawat miyembro ng pamilya: inuming tubig, flashlight, gamot, IDs, phone charger, at cash.",
-        "Alamin ang pangunahing sanhi ng baha sa lungsod ninyo - pag-apaw ng ilog, tidal flooding, o drainage failure - dahil magkaiba ang timing ng paglikas sa bawat isa.",
-        "Magtakda ng family evacuation trigger (hal. hanggang-bukong na tubig sa kalsada o 1 oras na tuloy-tuloy na malakas na ulan) at magkasundo sa meeting point.",
-        "Iakyat ang dokumento, appliances, at mahahalagang gamit bago magsimula ang tag-ulan, hindi habang may bagyo na.",
-        "Subaybayan ang PAGASA rainfall warnings (Yellow/Orange/Red) at flood advisories ng inyong LGU. Sundin ang abiso ng barangay dahil sila ang pinakamay alam sa lokal na kalye.",
-      ]
-    : [
-        "Prepare a go-bag for every household member: drinking water, flashlight, medicines, IDs, phone charger, and cash.",
-        "Know your city's primary flood mechanism - river overflow, tidal flooding, or drainage failure - because each requires different timing for evacuation.",
-        "Set a family evacuation trigger (e.g., ankle-deep street water or 1 hour of nonstop heavy rain) and agree on a meeting point.",
-        "Move documents, appliances, and valuables to upper floors or high shelves before the monsoon season, not during a storm.",
-        "Track PAGASA rainfall warnings (Yellow/Orange/Red) and your LGU's flood advisories. Follow barangay announcements - they know your streets best.",
-      ]
-
   const severeAreaDesc = [...cities].sort(
     (a, b) => b.total_high_hazard_area_km2 - a.total_high_hazard_area_km2,
   )
@@ -132,63 +116,48 @@ export function HazardSidebar({ hazardZones, cities, onClose }: Props): JSX.Elem
         </div>
       </div>
 
-      <div className="border-b border-[#334155] px-4 py-3">
-        <div className="mb-3 rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-3">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-rose-200">
-            {t("hazard.whatItMeans")}
-          </h3>
-          <p className="text-sm leading-6 text-rose-50">{metroMeaningNow}</p>
-        </div>
-
-        <div className="rounded-lg border border-amber-300/20 bg-amber-500/10 px-3 py-3">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-200">
-            {t("hazard.whatToDo")}
-          </h3>
-          <ul className="space-y-1.5 text-sm leading-6 text-amber-50">
-            {metroActionItems.map((item) => (
-              <li key={item} className="flex gap-2">
-                <span className="mt-1 text-amber-300">•</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="border-b border-[#334155] px-4 py-3">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          {t("hazard.severityDistribution")}
-        </h3>
-        <div className="space-y-2">
-          {SEVERITY.map(({ level, color }) => {
-            const count = severityCounts[level] ?? 0
-            const levelKey = level === 3 ? "high" : level === 2 ? "medium" : "low"
-            return (
-              <div key={level}>
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                  <span className="flex-1 text-xs text-slate-300">{t(`severity.${levelKey}`)}</span>
-                  <span className="text-xs font-mono text-slate-400">{count}</span>
-                </div>
-                <div className="mt-1 ml-[18px]">
-                  <div className="h-1.5 rounded-full bg-[#0f172a] overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        backgroundColor: color,
-                        width: totalZones > 0 ? `${(count / totalZones) * 100}%` : "0%",
-                      }}
-                    />
-                  </div>
-                  <p className="mt-0.5 text-[10px] text-slate-500">{t(`severity.${levelKey}Desc`)}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
       <div className="flex-1 overflow-y-auto">
+        <div className="border-b border-[#334155] px-4 py-3">
+          <div className="mb-3 rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-rose-200">
+              {t("hazard.whatItMeans")}
+            </h3>
+            <p className="text-sm leading-6 text-rose-50">{metroMeaningNow}</p>
+          </div>
+        </div>
+        <div className="border-b border-[#334155] px-4 py-3">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            {t("hazard.severityDistribution")}
+          </h3>
+          <div className="space-y-2">
+            {SEVERITY.map(({ level, color }) => {
+              const count = severityCounts[level] ?? 0
+              const levelKey = level === 3 ? "high" : level === 2 ? "medium" : "low"
+              return (
+                <div key={level}>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <span className="flex-1 text-xs text-slate-300">{t(`severity.${levelKey}`)}</span>
+                    <span className="text-xs font-mono text-slate-400">{count}</span>
+                  </div>
+                  <div className="mt-1 ml-[18px]">
+                    <div className="h-1.5 rounded-full bg-[#0f172a] overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          backgroundColor: color,
+                          width: totalZones > 0 ? `${(count / totalZones) * 100}%` : "0%",
+                        }}
+                      />
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-slate-500">{t(`severity.${levelKey}Desc`)}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
         <div className="px-4 py-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             {t("hazard.severeRanking")}

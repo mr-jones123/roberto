@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from "react"
-import { Source, Layer, Popup } from "react-map-gl/mapbox"
+import { Source, Layer, Popup, useMap } from "react-map-gl/mapbox"
 import { fetchRoute } from "../lib/api"
 
 type Point = { lat: number; lng: number }
@@ -15,6 +15,7 @@ type RouteMeta = { km: number; minutes: number; midpoint: [number, number] }
 export function RouteOverlay({ from, to, facilityName }: Props): JSX.Element | null {
   const [coordinates, setCoordinates] = useState<[number, number][] | null>(null)
   const [routeMeta, setRouteMeta] = useState<RouteMeta | null>(null)
+  const maps = useMap()
 
   useEffect(() => {
     if (!from || !to) {
@@ -59,6 +60,34 @@ export function RouteOverlay({ from, to, facilityName }: Props): JSX.Element | n
     }
   }, [coordinates])
 
+  useEffect(() => {
+    if (!routeGeoJSON) return
+    const map = maps.current?.getMap()
+    if (!map) return
+
+    const layerId = "route-line"
+    const dashCycle = 3.5
+    let animationId = 0
+
+    const animate = (time: number) => {
+      const dashOffset = (time / 120) % dashCycle
+      const leadDash = Math.max(0.01, dashOffset)
+      const trailDash = Math.max(0.01, dashCycle - dashOffset)
+
+      if (map.getLayer(layerId)) {
+        map.setPaintProperty(layerId, "line-dasharray", [leadDash, 2, trailDash, 2])
+      }
+
+      animationId = requestAnimationFrame(animate)
+    }
+
+    animationId = requestAnimationFrame(animate)
+
+    return () => {
+      cancelAnimationFrame(animationId)
+    }
+  }, [maps, routeGeoJSON])
+
   if (!routeGeoJSON || !routeMeta) return null
 
   const label = facilityName ?? "Facility"
@@ -70,7 +99,7 @@ export function RouteOverlay({ from, to, facilityName }: Props): JSX.Element | n
           id="route-line"
           type="line"
           layout={{ "line-join": "round", "line-cap": "round" }}
-          paint={{ "line-color": "#2563eb", "line-width": 4, "line-opacity": 0.85 }}
+          paint={{ "line-color": "#2563eb", "line-width": 4, "line-opacity": 0.85, "line-dasharray": [0.01, 2, 3.49, 2] }}
         />
       </Source>
       <Popup

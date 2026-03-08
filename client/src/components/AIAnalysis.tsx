@@ -9,6 +9,23 @@ type Props = {
   cityId: string
 }
 
+const CONFIDENCE_STYLES: Record<NonNullable<AnalysisResponse["confidence_level"]>, string> = {
+  high: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30",
+  medium: "bg-amber-500/15 text-amber-300 border border-amber-500/30",
+  low: "bg-orange-500/15 text-orange-300 border border-orange-500/30",
+  fallback: "bg-slate-500/15 text-slate-300 border border-slate-500/30",
+}
+
+function confidenceLabel(
+  t: (key: string) => string,
+  level: NonNullable<AnalysisResponse["confidence_level"]>,
+): string {
+  if (level === "high") return t("ai.confidenceHigh")
+  if (level === "medium") return t("ai.confidenceMedium")
+  if (level === "low") return t("ai.confidenceLow")
+  return t("ai.confidenceFallback")
+}
+
 export function AIAnalysis({ cityId }: Props): JSX.Element {
   const { t } = useLocale()
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY) ?? "")
@@ -34,14 +51,28 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
   }
 
   if (result?.analysis) {
+    const confidenceLevel = result.confidence_level ?? "fallback"
+    const sourceLabel = result.source === "fallback" ? t("ai.sourceFallback") : t("ai.sourceAi")
+
     return (
       <div className="rounded-lg border border-[#334155] bg-[#0f172a] p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <span className="rounded bg-blue-500/20 px-2 py-0.5 text-xs text-blue-400">
-            Gemini Flash
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="rounded border border-blue-500/30 bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+            {sourceLabel}
+          </span>
+          <span className={`rounded px-2 py-0.5 text-xs ${CONFIDENCE_STYLES[confidenceLevel]}`}>
+            {t("ai.confidence")} {confidenceLabel(t, confidenceLevel)}
           </span>
         </div>
         <p className="text-sm leading-relaxed text-slate-300">{result.analysis}</p>
+        {result.gated && (
+          <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            {t("ai.lowConfidenceFallback")}
+          </div>
+        )}
+        <p className="mt-3 text-[11px] text-slate-500">
+          {result.disclaimer ?? t("ai.disclaimer")}
+        </p>
       </div>
     )
   }

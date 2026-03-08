@@ -10,6 +10,26 @@ const VALID_FACILITY_TYPES = new Set<FacilityType>([
 
 type EvacCenterWithDistance = EvacCenterRow & { distance_km: number };
 
+const serializeCenter = (center: EvacCenterRow): EvacCenterRow => ({
+  id: center.id,
+  name: center.name,
+  type: center.type,
+  latitude: center.latitude,
+  longitude: center.longitude,
+  phone: center.phone,
+  landline: center.landline,
+  capacity: center.capacity,
+  current_load: center.current_load,
+  status: center.status,
+  created_at: center.created_at,
+  updated_at: center.updated_at,
+});
+
+const serializeCenterWithDistance = (center: EvacCenterWithDistance): EvacCenterWithDistance => ({
+  ...serializeCenter(center),
+  distance_km: center.distance_km,
+});
+
 const isValidCoordinate = (lat: number, lng: number): boolean => {
   return (
     typeof lat === "number" &&
@@ -32,7 +52,7 @@ export const createEvacCentersRouter = (store: IncidentStore): Router => {
       ? typeParam as FacilityType
       : undefined;
 
-    const centers = store.listEvacCenters(type);
+    const centers = store.listEvacCenters(type).map(serializeCenter);
     res.json({ centers });
   });
 
@@ -57,7 +77,7 @@ export const createEvacCentersRouter = (store: IncidentStore): Router => {
     }));
 
     const sorted = withDistance.sort((a, b) => a.distance_km - b.distance_km);
-    const nearest = sorted.slice(0, limit);
+    const nearest = sorted.slice(0, limit).map(serializeCenterWithDistance);
 
     res.json({ centers: nearest });
   });

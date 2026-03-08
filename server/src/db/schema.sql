@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS evac_centers (
                 CHECK (type IN ('evacuation_center', 'school', 'hospital', 'fire_station', 'police_station')),
   latitude      REAL NOT NULL,
   longitude     REAL NOT NULL,
+  phone         TEXT,
+  landline      TEXT,
   capacity      INTEGER,
   current_load  INTEGER NOT NULL DEFAULT 0,
   status        TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'full', 'closed')),

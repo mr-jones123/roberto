@@ -55,6 +55,8 @@ export type EvacCenterRow = {
   type: FacilityType;
   latitude: number;
   longitude: number;
+  phone: string | null;
+  landline: string | null;
   capacity: number | null;
   current_load: number;
   status: "open" | "full" | "closed";
@@ -104,6 +106,8 @@ export type UpsertEvacCenterInput = {
   type?: FacilityType;
   latitude: number;
   longitude: number;
+  phone?: string;
+  landline?: string;
   capacity?: number;
   current_load?: number;
   status?: "open" | "full" | "closed";
@@ -289,13 +293,15 @@ export class IncidentStore {
 
   upsertEvacCenter(input: UpsertEvacCenterInput): EvacCenterRow {
     const stmt = this.db.prepare(`
-      INSERT INTO evac_centers (id, name, type, latitude, longitude, capacity, current_load, status)
-      VALUES (@id, @name, @type, @latitude, @longitude, @capacity, @current_load, @status)
+      INSERT INTO evac_centers (id, name, type, latitude, longitude, phone, landline, capacity, current_load, status)
+      VALUES (@id, @name, @type, @latitude, @longitude, @phone, @landline, @capacity, @current_load, @status)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         type = excluded.type,
         latitude = excluded.latitude,
         longitude = excluded.longitude,
+        phone = excluded.phone,
+        landline = excluded.landline,
         capacity = excluded.capacity,
         current_load = excluded.current_load,
         status = excluded.status,
@@ -307,6 +313,8 @@ export class IncidentStore {
       type: input.type ?? "evacuation_center",
       latitude: input.latitude,
       longitude: input.longitude,
+      phone: input.phone ?? null,
+      landline: input.landline ?? null,
       capacity: input.capacity ?? null,
       current_load: input.current_load ?? 0,
       status: input.status ?? "open",

@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react"
 import type React from "react"
-import { createIncident, fetchCurrentWeather, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
-import type { EvacCenter, FacilityType, IncidentRow, PendingConnection, WeatherCurrent } from "../../lib/types"
+import { createIncident, fetchCurrentWeather, fetchIncidentNodeGuidance, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
+import type { EvacCenter, FacilityType, IncidentNodeGuidanceResponse, IncidentRow, PendingConnection, WeatherCurrent } from "../../lib/types"
 import { broadcastIncidentUpdate, useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
 import { NodePanel } from "../chat/NodePanel"
@@ -23,6 +23,22 @@ type Props = {
 }
 
 type LocationAccessState = "idle" | "granted" | "denied" | "unavailable"
+
+const GEMINI_STORAGE_KEY = "roberto-gemini-key"
+
+const NODE_GUIDANCE_CONFIDENCE_STYLES: Record<IncidentNodeGuidanceResponse["confidence_level"], string> = {
+  high: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  medium: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  low: "border-orange-500/30 bg-orange-500/10 text-orange-200",
+  fallback: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+}
+
+function confidenceLabelForGuidance(level: IncidentNodeGuidanceResponse["confidence_level"]): string {
+  if (level === "high") return "high"
+  if (level === "medium") return "medium"
+  if (level === "low") return "low"
+  return "fallback"
+}
 
 export function ReporterPanel({
   token,
@@ -430,6 +446,66 @@ function PingCard({
 }): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null)
+  const [guidance, setGuidance] = useState<IncidentNodeGuidanceResponse | null>(null)
+  const [loadingGuidance, setLoadingGuidance] = useState(false)
+  const [guidanceError, setGuidanceError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!expanded || guidance) return
+
+    let cancelled = false
+    const apiKey = localStorage.getItem(GEMINI_STORAGE_KEY) ?? ""
+    setLoadingGuidance(true)
+    setGuidanceError(null)
+
+    fetchIncidentNodeGuidance(
+      {
+        latitude: ping.latitude,
+        longitude: ping.longitude,
+        incident: {
+          title: ping.title,
+          status: ping.status,
+          priority: ping.priority,
+          description: ping.description?.trim() ? ping.description : null,
+        },
+      },
+      apiKey,
+    )
+      .then((result) => {
+        if (cancelled) return
+        setGuidance(result)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setGuidanceError("Guidance unavailable right now. Showing conservative fallback.")
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoadingGuidance(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [expanded, guidance, ping.latitude, ping.longitude, ping.title, ping.status, ping.priority, ping.description])
+
+  const fallbackSections = {
+    what_this_means: `${ping.title} (${ping.status}) was reported in this area. Keep a conservative flood safety posture while monitoring updates.`,
+    what_you_can_do_now: [
+      "Identify your nearest safe route and evacuation center now.",
+      "Prepare essential items (documents, medicine, phone power) in one grab bag.",
+      "Follow PAGASA and LGU advisories for official warnings and evacuation orders.",
+    ],
+  }
+
+  const sections = guidance?.guidance ?? fallbackSections
+  const confidenceLevel = guidance?.confidence_level ?? "fallback"
+  const sourceLabel = guidance?.source === "ai" ? "AI-assisted" : "Preparedness fallback"
+  const cityLabel = guidance?.context.city ?? "Unknown area"
+  const hazardLabel = guidance?.context.hazard.label ?? "-"
+  const weatherLabel = guidance?.context.weather
+    ? `${guidance.context.weather.weather_label} ${guidance.context.weather.temperature_c.toFixed(1)}°C`
+    : "Weather unavailable"
 
   const toggle = () => {
     if (!expanded) {
@@ -468,44 +544,119 @@ function PingCard({
                   const isSelected = c.id === selectedFacilityId
 
                   return (
-                    <button
+                    <div
                       key={c.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedFacilityId(c.id)
-                        onSelectFacility(
-                          { lat: ping.latitude, lng: ping.longitude },
-                          { lat: c.latitude, lng: c.longitude },
-                          c.name,
-                        )
-                      }}
                       className={`w-full rounded-md border px-2.5 py-2 text-left transition-colors ${
                         isSelected
                           ? "border-blue-500/50 bg-blue-500/10"
                           : "border-[#334155] bg-[#1e293b]/30 hover:border-[#475569] hover:bg-[#1e293b]/60"
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex items-center gap-2">
-                          <span className="text-sm leading-none">{getFacilityEmoji(c.type)}</span>
-                          <span className="truncate text-[11px] text-slate-300">{c.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedFacilityId(c.id)
+                          onSelectFacility(
+                            { lat: ping.latitude, lng: ping.longitude },
+                            { lat: c.latitude, lng: c.longitude },
+                            c.name,
+                          )
+                        }}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex items-center gap-2">
+                            <span className="text-sm leading-none">{getFacilityEmoji(c.type)}</span>
+                            <span className="truncate text-[11px] text-slate-300">{c.name}</span>
+                          </div>
+                          <span className="ml-2 flex-shrink-0 text-[10px] font-mono text-slate-500">
+                            {c.distance_km.toFixed(1)} km
+                          </span>
                         </div>
-                        <span className="ml-2 flex-shrink-0 text-[10px] font-mono text-slate-500">
-                          {c.distance_km.toFixed(1)} km
-                        </span>
+                      </button>
+
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                        {c.phone && (
+                          <a
+                            href={toTelHref(c.phone)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="underline decoration-slate-500/70 underline-offset-2 hover:text-slate-200"
+                          >
+                            📱 {c.phone}
+                          </a>
+                        )}
+                        {c.landline && (
+                          <a
+                            href={toTelHref(c.landline)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="underline decoration-slate-500/70 underline-offset-2 hover:text-slate-200"
+                          >
+                            ☎ {c.landline}
+                          </a>
+                        )}
                       </div>
+
                       {isSelected && (
                         <span className="mt-1 inline-flex rounded-full border border-blue-400/30 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-blue-300">
                           🚶 Walking route
                         </span>
                       )}
-                    </button>
+                    </div>
                   )
                 })}
               </div>
             </div>
           )}
+
+          <div className="mt-2 rounded-md border border-[#334155] bg-[#020617] px-2.5 py-2">
+            <p className="text-[10px] uppercase tracking-wider text-slate-500">
+              {weatherLabel} · Flood {hazardLabel} · {cityLabel}
+            </p>
+          </div>
+
+          <div className="mt-2 rounded-md border border-[#334155] bg-[#020617] px-2.5 py-2">
+            {loadingGuidance && (
+              <p className="text-[11px] text-slate-400">Analyzing local flood context...</p>
+            )}
+            {guidanceError && (
+              <p className="mb-2 rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">
+                {guidanceError}
+              </p>
+            )}
+            {!loadingGuidance && (
+              <>
+                <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+                  <span className="rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-blue-300">
+                    {sourceLabel}
+                  </span>
+                  <span className={`rounded border px-1.5 py-0.5 ${NODE_GUIDANCE_CONFIDENCE_STYLES[confidenceLevel]}`}>
+                    Confidence {confidenceLabelForGuidance(confidenceLevel)}
+                  </span>
+                </div>
+
+                <div className="mb-2">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500">What this means</div>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-200">{sections.what_this_means}</p>
+                </div>
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500">What you can do now</div>
+                  <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-[11px] leading-relaxed text-slate-200">
+                    {sections.what_you_can_do_now.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {guidance?.gated && (
+                  <p className="mt-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-200">
+                    AI is unavailable or low-confidence for this node, so fallback guidance is shown.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -518,4 +669,9 @@ function getFacilityEmoji(type: FacilityType): string {
   if (type === "fire_station") return "🚒"
   if (type === "police_station") return "🚔"
   return "🏛"
+}
+
+function toTelHref(value: string): string {
+  const normalized = value.replace(/[^\d+]/g, "")
+  return `tel:${normalized}`
 }

@@ -65,6 +65,44 @@ export type Meta = {
 export type AnalysisResponse = {
   analysis: string | null;
   error?: string;
+  source?: "ai" | "fallback";
+  audience?: "public" | "coordinator" | "responder";
+  confidence_level?: "high" | "medium" | "low" | "fallback";
+  confidence_score?: number;
+  gated?: boolean;
+  disclaimer?: string;
+  model_error?: string;
+};
+
+export type IncidentNodeGuidanceResponse = {
+  source: "ai" | "fallback";
+  confidence_level: "high" | "medium" | "low" | "fallback";
+  confidence_score: number;
+  gated: boolean;
+  disclaimer: string;
+  guidance: {
+    what_this_means: string;
+    what_you_can_do_now: string[];
+  };
+  context: {
+    city: string | null;
+    hazard: {
+      level: 0 | 1 | 2 | 3;
+      label: string;
+    };
+    weather: {
+      observed_at: string;
+      temperature_c: number;
+      feels_like_c: number;
+      precipitation_mm: number;
+      rain_mm: number;
+      wind_kph: number;
+      weather_code: number;
+      weather_label: string;
+      is_day: boolean;
+    } | null;
+  };
+  model_error?: string;
 };
 
 export type HazardZones = {
@@ -78,4 +116,32 @@ export type DataBundle = {
   boundaries: CityBoundaries;
   hazardZones: HazardZones;
   meta: Meta;
+};
+
+export type FacilityType = "evacuation_center" | "school" | "hospital" | "fire_station" | "police_station";
+
+export type EvacCenter = {
+  id: string;
+  name: string;
+  type: FacilityType;
+  latitude: number;
+  longitude: number;
+  phone: string | null;
+  landline: string | null;
+  distance_km: number;
+};
+
+export type EvacCenterRow = {
+  id: string;
+  name: string;
+  type: FacilityType;
+  latitude: number;
+  longitude: number;
+  phone: string | null;
+  landline: string | null;
+  capacity: number | null;
+  current_load: number;
+  status: "open" | "full" | "closed";
+  created_at: string;
+  updated_at: string;
 };

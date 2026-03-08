@@ -20,6 +20,18 @@ export const migrate = (): void => {
 
   const schema = readFileSync(SCHEMA_PATH, "utf-8");
   db.exec(schema);
+
+  const columns = db
+    .prepare("PRAGMA table_info(evac_centers)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+  if (!columnNames.has("phone")) {
+    db.exec("ALTER TABLE evac_centers ADD COLUMN phone TEXT");
+  }
+  if (!columnNames.has("landline")) {
+    db.exec("ALTER TABLE evac_centers ADD COLUMN landline TEXT");
+  }
+
   db.close();
 
   process.stdout.write(`Migration complete: ${dbPath}\n`);

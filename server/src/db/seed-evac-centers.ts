@@ -13,6 +13,8 @@ type FacilitySeedData = {
   type: FacilityType;
   latitude: number;
   longitude: number;
+  phone: string;
+  landline: string;
   capacity: number;
   status: "open" | "full" | "closed";
 };
@@ -30,6 +32,8 @@ export const seedEvacCenters = (): void => {
       type: center.type ?? "evacuation_center",
       latitude: center.latitude,
       longitude: center.longitude,
+      phone: center.phone,
+      landline: center.landline,
       capacity: center.capacity,
       status: center.status,
     });

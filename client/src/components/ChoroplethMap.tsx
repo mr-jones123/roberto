@@ -48,6 +48,8 @@ type PopupInfo =
   | { type: "incident"; lng: number; lat: number; incident: IncidentRow }
   | { type: "evac"; lng: number; lat: number; center: EvacCenterRow }
 
+const GEMINI_STORAGE_KEY = "roberto-gemini-key"
+
 const INTERACTIVE_LAYERS = [
   "boundaries-fill", "clusters", "unclustered-project",
   INCIDENT_LAYER_ID, PING_SINGLE_LAYER_ID, EVAC_LAYER_ID, PING_CLUSTER_LAYER_ID,
@@ -138,9 +140,9 @@ export function ChoroplethMap({
     const animate = () => {
       const phase = (Math.sin(Date.now() / 380) + 1) / 2
       const unresolvedRadius = 8 + phase * 2.8
-      const unresolvedOpacity = 0.64 + phase * 0.22
+      const unresolvedOpacity = 0.92 + phase * 0.08
       const resolvedRadius = 10.5
-      const resolvedOpacity = 0.96
+      const resolvedOpacity = 1
       const pingRadius = 8 + phase * 3.4
       const pingStroke = 1.8 + phase * 1.2
 
@@ -593,7 +595,9 @@ function ProjectPopupContent({ project: p }: { project: Project }) {
 }
 
 function IncidentPopupContent({ incident: inc }: { incident: IncidentRow }) {
+  void GEMINI_STORAGE_KEY
   const color = INCIDENT_COLORS[inc.status] ?? "#94a3b8"
+
   return (
     <div>
       <div className="text-sm font-semibold leading-snug text-slate-100 mb-2">{inc.title}</div>

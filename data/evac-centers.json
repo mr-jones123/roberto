@@ -6,7 +6,9 @@
     "latitude": 14.6549,
     "longitude": 121.0749,
     "capacity": 500,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-002",
@@ -15,7 +17,9 @@
     "latitude": 14.6295,
     "longitude": 121.0456,
     "capacity": 800,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-003",
@@ -24,7 +28,9 @@
     "latitude": 14.5795,
     "longitude": 121.1149,
     "capacity": 600,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-004",
@@ -33,7 +39,9 @@
     "latitude": 14.5795,
     "longitude": 121.0849,
     "capacity": 1000,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-005",
@@ -42,7 +50,9 @@
     "latitude": 14.5795,
     "longitude": 121.0349,
     "capacity": 700,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-006",
@@ -51,7 +61,9 @@
     "latitude": 14.5995,
     "longitude": 121.0149,
     "capacity": 400,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-007",
@@ -60,7 +72,9 @@
     "latitude": 14.5495,
     "longitude": 121.0249,
     "capacity": 350,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-008",
@@ -69,25 +83,31 @@
     "latitude": 14.5195,
     "longitude": 121.0549,
     "capacity": 900,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-009",
-    "name": "Parañaque Sports Complex",
+    "name": "Para\u00f1aque Sports Complex",
     "type": "evacuation_center",
     "latitude": 14.3595,
     "longitude": 121.0149,
     "capacity": 750,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-010",
-    "name": "Las Piñas Barangay Hall - Almanza",
+    "name": "Las Pi\u00f1as Barangay Hall - Almanza",
     "type": "evacuation_center",
     "latitude": 14.3495,
     "longitude": 120.9549,
     "capacity": 450,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-011",
@@ -96,7 +116,9 @@
     "latitude": 14.7195,
     "longitude": 120.9849,
     "capacity": 650,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "evac-012",
@@ -105,7 +127,9 @@
     "latitude": 14.7495,
     "longitude": 120.9649,
     "capacity": 500,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-001",
@@ -114,7 +138,9 @@
     "latitude": 14.5781,
     "longitude": 120.9855,
     "capacity": 1500,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-002",
@@ -123,16 +149,20 @@
     "latitude": 14.5639,
     "longitude": 120.9864,
     "capacity": 300,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-003",
     "name": "Jose R. Reyes Memorial Medical Center",
     "type": "hospital",
-    "latitude": 14.6140,
+    "latitude": 14.614,
     "longitude": 120.9822,
     "capacity": 600,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-004",
@@ -141,7 +171,9 @@
     "latitude": 14.6351,
     "longitude": 120.9631,
     "capacity": 300,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-005",
@@ -150,7 +182,9 @@
     "latitude": 14.6091,
     "longitude": 120.9662,
     "capacity": 200,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-006",
@@ -159,7 +193,9 @@
     "latitude": 14.6419,
     "longitude": 121.0477,
     "capacity": 600,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-007",
@@ -168,7 +204,9 @@
     "latitude": 14.6222,
     "longitude": 121.0724,
     "capacity": 1000,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "hosp-008",
@@ -177,7 +215,9 @@
     "latitude": 14.6898,
     "longitude": 120.9781,
     "capacity": 400,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "school-001",
@@ -186,7 +226,9 @@
     "latitude": 14.6311,
     "longitude": 121.0975,
     "capacity": 400,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "school-002",
@@ -195,7 +237,9 @@
     "latitude": 14.5681,
     "longitude": 121.0756,
     "capacity": 500,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "school-003",
@@ -204,7 +248,9 @@
     "latitude": 14.6578,
     "longitude": 120.9481,
     "capacity": 350,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "school-004",
@@ -213,7 +259,9 @@
     "latitude": 14.6769,
     "longitude": 120.9417,
     "capacity": 400,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "school-005",
@@ -222,25 +270,31 @@
     "latitude": 14.6516,
     "longitude": 120.9821,
     "capacity": 450,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "school-006",
     "name": "Valenzuela National High School",
     "type": "school",
     "latitude": 14.6725,
-    "longitude": 120.9850,
+    "longitude": 120.985,
     "capacity": 400,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "school-007",
     "name": "Almario Elementary School",
     "type": "school",
-    "latitude": 14.5950,
-    "longitude": 120.9820,
+    "latitude": 14.595,
+    "longitude": 120.982,
     "capacity": 300,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "fire-001",
@@ -249,7 +303,9 @@
     "latitude": 14.6519,
     "longitude": 121.0381,
     "capacity": 100,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "fire-002",
@@ -258,7 +314,9 @@
     "latitude": 14.6578,
     "longitude": 120.9742,
     "capacity": 50,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "fire-003",
@@ -267,25 +325,31 @@
     "latitude": 14.5624,
     "longitude": 121.0151,
     "capacity": 50,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "fire-004",
     "name": "Marikina City Fire Station",
     "type": "fire_station",
-    "latitude": 14.6320,
-    "longitude": 121.0960,
+    "latitude": 14.632,
+    "longitude": 121.096,
     "capacity": 50,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "fire-005",
     "name": "Pasig City Fire Station",
     "type": "fire_station",
-    "latitude": 14.5600,
-    "longitude": 121.0750,
+    "latitude": 14.56,
+    "longitude": 121.075,
     "capacity": 50,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "police-001",
@@ -294,7 +358,9 @@
     "latitude": 14.6091,
     "longitude": 120.9662,
     "capacity": 80,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "police-002",
@@ -303,7 +369,9 @@
     "latitude": 14.5819,
     "longitude": 120.9733,
     "capacity": 80,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "police-003",
@@ -312,7 +380,9 @@
     "latitude": 14.6019,
     "longitude": 121.0119,
     "capacity": 80,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "police-004",
@@ -321,7 +391,9 @@
     "latitude": 14.6381,
     "longitude": 121.0631,
     "capacity": 150,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   },
   {
     "id": "police-005",
@@ -330,6 +402,8 @@
     "latitude": 14.5697,
     "longitude": 121.0817,
     "capacity": 100,
-    "status": "open"
+    "status": "open",
+    "phone": "+63 917 123 4567",
+    "landline": "(02) 8123-4567"
   }
 ]

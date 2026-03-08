@@ -40,6 +40,55 @@ export type Meta = {
 export type AnalysisResponse = {
   analysis: string | null
   error?: string
+  source?: "ai" | "fallback"
+  audience?: "public" | "coordinator" | "responder"
+  confidence_level?: "high" | "medium" | "low" | "fallback"
+  confidence_score?: number
+  gated?: boolean
+  disclaimer?: string
+  model_error?: string
+}
+
+export type IncidentNodeGuidanceRequest = {
+  latitude: number
+  longitude: number
+  incident: {
+    title: string
+    status: string
+    priority: number | null
+    description: string | null
+  }
+}
+
+export type IncidentNodeGuidanceResponse = {
+  source: "ai" | "fallback"
+  confidence_level: "high" | "medium" | "low" | "fallback"
+  confidence_score: number
+  gated: boolean
+  disclaimer: string
+  guidance: {
+    what_this_means: string
+    what_you_can_do_now: string[]
+  }
+  context: {
+    city: string | null
+    hazard: {
+      level: 0 | 1 | 2 | 3
+      label: string
+    }
+    weather: {
+      observed_at: string
+      temperature_c: number
+      feels_like_c: number
+      precipitation_mm: number
+      rain_mm: number
+      wind_kph: number
+      weather_code: number
+      weather_label: string
+      is_day: boolean
+    } | null
+  }
+  model_error?: string
 }
 
 export type CityDetail = {
@@ -145,6 +194,8 @@ export type EvacCenter = {
   latitude: number
   longitude: number
   distance_km: number
+  phone: string | null
+  landline: string | null
 }
 
 export type EvacCenterRow = {
@@ -153,6 +204,8 @@ export type EvacCenterRow = {
   type: FacilityType
   latitude: number
   longitude: number
+  phone: string | null
+  landline: string | null
   capacity: number | null
   current_load: number
   status: "open" | "full" | "closed"

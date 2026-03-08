@@ -1,4 +1,24 @@
-import type { AnalysisResponse, City, CityDetail, ConnectionInviteRow, ConversationRow, EvacCenter, EvacCenterRow, HelpNodeRow, IncidentEventRow, IncidentRow, KpiResponse, LoginResponse, MessageRow, Meta, OsrmRouteResponse, Project, WeatherCurrent } from "./types"
+import type {
+  AnalysisResponse,
+  City,
+  CityDetail,
+  ConnectionInviteRow,
+  ConversationRow,
+  EvacCenter,
+  EvacCenterRow,
+  HelpNodeRow,
+  IncidentEventRow,
+  IncidentNodeGuidanceRequest,
+  IncidentNodeGuidanceResponse,
+  IncidentRow,
+  KpiResponse,
+  LoginResponse,
+  MessageRow,
+  Meta,
+  OsrmRouteResponse,
+  Project,
+  WeatherCurrent,
+} from "./types"
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -48,8 +68,12 @@ export function fetchHazardZones(): Promise<GeoJSON.FeatureCollection> {
   return fetchJson<GeoJSON.FeatureCollection>("/api/hazard")
 }
 
-export function fetchAnalysis(id: string, apiKey: string): Promise<AnalysisResponse> {
-  return fetch(`/api/cities/${id}/analysis`, {
+export function fetchAnalysis(
+  id: string,
+  apiKey: string,
+  audience: "public" | "coordinator" | "responder" = "public",
+): Promise<AnalysisResponse> {
+  return fetch(`/api/cities/${id}/analysis?audience=${audience}`, {
     headers: { "X-Gemini-Key": apiKey },
   }).then((res) => {
     if (!res.ok) return res.json() as Promise<AnalysisResponse>
@@ -118,6 +142,26 @@ export function fetchRoute(
 
 export function fetchCurrentWeather(lat: number, lng: number): Promise<WeatherCurrent> {
   return fetchJson(`/api/weather/current?lat=${lat}&lng=${lng}`)
+}
+
+export function fetchIncidentNodeGuidance(
+  payload: IncidentNodeGuidanceRequest,
+  apiKey?: string,
+): Promise<IncidentNodeGuidanceResponse> {
+  return fetch("/api/incidents/node-guidance", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(apiKey && apiKey.trim() !== "" ? { "X-Gemini-Key": apiKey.trim() } : {}),
+    },
+    body: JSON.stringify(payload),
+  }).then(async (res) => {
+    const body = await res.json().catch(() => ({})) as IncidentNodeGuidanceResponse & { error?: string }
+    if (!res.ok) {
+      throw new Error(body.error ?? `Request failed: ${res.status}`)
+    }
+    return body
+  })
 }
 
 export function verifyIncident(
