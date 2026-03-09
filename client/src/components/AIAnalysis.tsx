@@ -42,7 +42,6 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
   }
 
   const handleAnalyze = (): void => {
-    if (apiKey.trim() === "") return
     setLoading(true)
     fetchAnalysis(cityId, apiKey.trim())
       .then(setResult)
@@ -105,7 +104,7 @@ export function AIAnalysis({ cityId }: Props): JSX.Element {
         />
         <button
           onClick={handleAnalyze}
-          disabled={loading || apiKey.trim() === ""}
+          disabled={loading}
           className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-40"
         >
           {loading ? "..." : t("ai.analyze")}

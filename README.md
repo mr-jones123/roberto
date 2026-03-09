@@ -119,44 +119,98 @@ roberto/
 └── render.yaml             # Render deployment config
 ```
 
-## Getting Started
+## Run Roberto Locally
 
 ### Prerequisites
 
 - Node.js 20+
-- Mapbox access token (set `VITE_MAPBOX_ACCESS_TOKEN` in `.env` at repo root)
-- Python 3.10+ with GeoPandas (only if regenerating data)
+- npm 10+
+- A Mapbox token (free tier is enough) from [Mapbox](https://account.mapbox.com/access-tokens/)
+- Python 3.10+ (only if you want to regenerate `data/` with the pipeline)
 
-### Quick Start
+### 1) Clone and install
 
 ```bash
-# Install dependencies
+git clone <repo-url>
+cd roberto
 make install
+```
 
-# Start dev servers (client on :5173, server on :3001)
+### 2) Configure environment variables
+
+Create a client env file for the map UI:
+
+```bash
+cat > client/.env <<'EOF'
+VITE_MAPBOX_ACCESS_TOKEN=pk.your_mapbox_token_here
+EOF
+```
+
+Create a server env file for geocoding/routing/weather endpoints:
+
+```bash
+cp server/.env.example server/.env
+```
+
+Then edit `server/.env` and set at minimum:
+
+- `MAPBOX_ACCESS_TOKEN` (recommended: same token as client)
+- `PORT` (optional, default is `3001`)
+- `GEMINI_API_KEY` (optional; only needed if you use AI analysis endpoints)
+
+### 3) Start development mode
+
+```bash
 make dev
 ```
 
-### Available Commands
+This runs:
+
+- Client: `http://localhost:5173`
+- Server: `http://localhost:3001`
+- Health check: `http://localhost:3001/health`
+
+On first boot, the server automatically creates/migrates `incidents.db` and seeds demo users + evacuation centers.
+
+### 4) Build and run production mode (optional)
 
 ```bash
-make install     # Install all dependencies
-make dev         # Start client + server in dev mode
-make build       # Full production build
-make start       # Run production server
-make typecheck   # Type-check both client and server
-make pipeline    # Run Python data pipeline (regenerate data/)
-make validate    # Run 30-check pipeline validation
-make clean       # Remove build artifacts
+make build
+make start
 ```
 
-### Production Build
+The Express server serves both API and built frontend from `client/dist`.
 
-```bash
-make build && make start
-# Server runs on port 3001 (or PORT env var)
-# Serves both API and built frontend
-```
+### Default demo logins
+
+These users are seeded automatically at startup:
+
+- `reporter1` / `pass123`
+- `reporter2` / `pass123`
+- `coord1` / `pass123`
+- `resp1` / `pass123`
+
+### Command Reference
+
+| Command | Description |
+|---|---|
+| `make install` | Install dependencies for both `client/` and `server/` |
+| `make dev` | Run client + server in watch mode |
+| `make build` | Build production artifacts |
+| `make start` | Start production server from `server/dist` |
+| `make typecheck` | Type-check both workspaces |
+| `make pipeline` | Rebuild geospatial output in `data/` (Python) |
+| `make validate` | Run pipeline validation suite |
+| `make smoke` | Run API smoke tests (`scripts/smoke-test.sh`) |
+| `make demo` | Run deterministic incident demo seeding |
+| `make clean` | Remove build artifacts |
+
+### Troubleshooting
+
+- Blank map in the client -> verify `client/.env` has `VITE_MAPBOX_ACCESS_TOKEN`, then restart `make dev`.
+- `/api/geocode` or `/api/route` returns token errors -> set `MAPBOX_ACCESS_TOKEN` in `server/.env`.
+- Server fails with data file errors -> ensure `data/` exists; regenerate with `make pipeline` if needed.
+- Port already in use -> change `PORT` in `server/.env` or free the port.
 
 ## Deployment
 
@@ -166,6 +220,10 @@ Roberto is configured for [Render](https://render.com) free tier:
 2. Render → New → Web Service → connect the repo
 3. `render.yaml` auto-configures build + start commands
 4. No environment variables needed (AI keys are user-provided)
+
+## Acknowledgments
+
+Roberto was informed by ideas and presentation patterns from [xmpuspus/flood-guard-ph](https://github.com/xmpuspus/flood-guard-ph). Thank you to that project for helping shape Roberto's direction.
 
 ## Project Markers & Clustering
 

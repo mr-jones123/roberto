@@ -238,7 +238,7 @@ function App(): JSX.Element {
             selectedCityId={selectedCityId}
             onSelectCity={incidentMode ? () => {} : setSelectedCityId}
             showHazard={effectiveShowHazard}
-            show3D={show3D && effectiveShowHazard}
+            show3D={show3D}
             showWater={showWater && show3D && effectiveShowHazard}
             showProjects={showProjects}
             showCoverageOverlay={showCoverageOverlay}
@@ -254,6 +254,10 @@ function App(): JSX.Element {
             userLocation={userLocation}
             onClusterSelect={setClusterSelection}
             onToggle3D={() => setShow3D((v) => !v)}
+            onToggleHazard={incidentMode ? () => {
+              if (isReporterIncidentView) setReporterFloodContext((v) => !v)
+              else setShowHazard((v) => !v)
+            } : undefined}
             onToggleWater={() => setShowWater((v) => !v)}
             pendingConnections={pendingConnections}
           />

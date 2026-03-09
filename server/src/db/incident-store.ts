@@ -369,6 +369,21 @@ export class IncidentStore {
     return this.getHelpNode(input.id)!;
   }
 
+  updateHelpNodeLocation(id: string, latitude: number, longitude: number): HelpNodeRow | null {
+    const stmt = this.db.prepare(`
+      UPDATE help_nodes
+      SET latitude = @latitude,
+          longitude = @longitude,
+          status = 'active',
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      WHERE id = @id
+    `);
+
+    const result = stmt.run({ id, latitude, longitude });
+    if (result.changes === 0) return null;
+    return this.getHelpNode(id) ?? null;
+  }
+
   getHelpNode(id: string): HelpNodeRow | undefined {
     const stmt = this.db.prepare("SELECT * FROM help_nodes WHERE id = ?");
     return stmt.get(id) as HelpNodeRow | undefined;

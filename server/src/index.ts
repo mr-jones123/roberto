@@ -17,6 +17,7 @@ import { createCitiesRouter } from "./routes/cities.js";
 import { createEvacCentersRouter } from "./routes/evac-centers.js";
 import { createHazardRouter } from "./routes/hazard.js";
 import { createEventsRouter } from "./routes/events.js";
+import { createGeocodeRouter } from "./routes/geocode.js";
 import { createIncidentsRouter } from "./routes/incidents.js";
 import { createKpiRouter } from "./routes/kpi.js";
 import { createNodesRouter } from "./routes/nodes.js";
@@ -78,6 +79,7 @@ const startServer = async (): Promise<void> => {
   app.use("/api/boundaries", createBoundariesRouter(dataStore));
   app.use("/api/evac-centers", createEvacCentersRouter(incidentStore));
   app.use("/api/events", createEventsRouter(eventBus));
+  app.use("/api/geocode", createGeocodeRouter());
   app.use("/api/incidents", createIncidentsRouter(incidentStore, lifecycleEngine, eventBus));
   app.use("/api/kpi", createKpiRouter(incidentStore));
   app.use("/api/hazard", createHazardRouter(dataStore));

@@ -39,6 +39,7 @@ type Props = {
   focusIncident?: IncidentRow | null
   onClusterSelect?: (selection: ClusterSelection) => void
   onToggle3D?: () => void
+  onToggleHazard?: () => void
   onToggleWater?: () => void
   pendingConnections?: PendingConnection[]
 }
@@ -68,6 +69,7 @@ export function ChoroplethMap({
   focusIncident = null,
   onClusterSelect = () => {},
   onToggle3D,
+  onToggleHazard,
   onToggleWater,
   pendingConnections = [],
 }: Props): JSX.Element | null {
@@ -541,10 +543,15 @@ export function ChoroplethMap({
         3D buildings are from Mapbox — hazard coloring is illustrative
       </div>
     )}
-    {showHazard && onToggle3D && (
+    {(onToggle3D || onToggleHazard) && (
       <div className="absolute top-3 left-3 z-10 flex gap-1.5">
-        <LayerToggle label="3D" active={show3D} onToggle={onToggle3D} color="#8b5cf6" />
-        {show3D && onToggleWater && (
+        {onToggleHazard && (
+          <LayerToggle label="Hazard" active={showHazard} onToggle={onToggleHazard} color="#ef4444" />
+        )}
+        {onToggle3D && (
+          <LayerToggle label="3D" active={show3D} onToggle={onToggle3D} color="#8b5cf6" />
+        )}
+        {show3D && showHazard && onToggleWater && (
           <LayerToggle label="Water" active={showWater} onToggle={onToggleWater} color="#38bdf8" />
         )}
       </div>

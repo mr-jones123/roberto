@@ -1,4 +1,5 @@
 import type {
+  AddressSearchResult,
   AnalysisResponse,
   City,
   CityDetail,
@@ -16,12 +17,14 @@ import type {
   MessageRow,
   Meta,
   OsrmRouteResponse,
+  FacilityType,
   Project,
   WeatherCurrent,
 } from "./types"
+import { MAPBOX_TOKEN } from "./map-utils"
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url)
+async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(url, options)
   if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`)
   return res.json() as Promise<T>
 }
@@ -70,11 +73,13 @@ export function fetchHazardZones(): Promise<GeoJSON.FeatureCollection> {
 
 export function fetchAnalysis(
   id: string,
-  apiKey: string,
+  apiKey?: string,
   audience: "public" | "coordinator" | "responder" = "public",
 ): Promise<AnalysisResponse> {
   return fetch(`/api/cities/${id}/analysis?audience=${audience}`, {
-    headers: { "X-Gemini-Key": apiKey },
+    headers: {
+      ...(apiKey && apiKey.trim() !== "" ? { "X-Gemini-Key": apiKey.trim() } : {}),
+    },
   }).then((res) => {
     if (!res.ok) return res.json() as Promise<AnalysisResponse>
     return res.json() as Promise<AnalysisResponse>
@@ -126,8 +131,21 @@ export function fetchNearestEvacCenters(
   lat: number,
   lng: number,
   limit = 6,
+  type?: FacilityType,
 ): Promise<{ centers: EvacCenter[] }> {
-  return fetchJson(`/api/evac-centers/nearest?lat=${lat}&lng=${lng}&limit=${limit}`)
+  const searchParams = new URLSearchParams({
+    lat: String(lat),
+    lng: String(lng),
+    limit: String(limit),
+  })
+  if (type) {
+    searchParams.set("type", type)
+  }
+  return fetchJson(`/api/evac-centers/nearest?${searchParams.toString()}`, {
+    headers: {
+      ...(MAPBOX_TOKEN ? { "X-Mapbox-Token": MAPBOX_TOKEN } : {}),
+    },
+  })
 }
 
 export function fetchRoute(
@@ -137,7 +155,38 @@ export function fetchRoute(
   toLng: number,
   profile: "foot" | "driving" | "bike" = "foot",
 ): Promise<OsrmRouteResponse> {
-  return fetchJson(`/api/route?profile=${profile}&from=${fromLng},${fromLat}&to=${toLng},${toLat}`)
+  return fetchJson(`/api/route?profile=${profile}&from=${fromLng},${fromLat}&to=${toLng},${toLat}`, {
+    headers: {
+      ...(MAPBOX_TOKEN ? { "X-Mapbox-Token": MAPBOX_TOKEN } : {}),
+    },
+  })
+}
+
+export function searchAddresses(
+  query: string,
+  options?: {
+    limit?: number
+    proximity?: { lat: number; lng: number } | null
+    signal?: AbortSignal
+  },
+): Promise<{ query: string; features: AddressSearchResult[] }> {
+  const trimmedQuery = query.trim()
+  const searchParams = new URLSearchParams({ q: trimmedQuery })
+
+  if (options?.limit != null) {
+    searchParams.set("limit", String(options.limit))
+  }
+
+  if (options?.proximity) {
+    searchParams.set("proximity", `${options.proximity.lng},${options.proximity.lat}`)
+  }
+
+  return fetchJson(`/api/geocode/search?${searchParams.toString()}`, {
+    headers: {
+      ...(MAPBOX_TOKEN ? { "X-Mapbox-Token": MAPBOX_TOKEN } : {}),
+    },
+    signal: options?.signal,
+  })
 }
 
 export function fetchCurrentWeather(lat: number, lng: number): Promise<WeatherCurrent> {

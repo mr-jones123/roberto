@@ -8,6 +8,17 @@ import type { EventBus } from "../realtime/event-bus.js";
 
 const paramId = (params: Record<string, unknown>): string => params.id as string;
 
+const isValidCoordinate = (latitude: number, longitude: number): boolean => {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+};
+
 export const createNodesRouter = (store: IncidentStore, _bus: EventBus): Router => {
   const router = Router();
 
@@ -43,8 +54,9 @@ export const createNodesRouter = (store: IncidentStore, _bus: EventBus): Router 
       const { latitude, longitude } = req.body as Record<string, unknown>;
 
       if (
-        typeof latitude !== "number" || !Number.isFinite(latitude) ||
-        typeof longitude !== "number" || !Number.isFinite(longitude)
+        typeof latitude !== "number" ||
+        typeof longitude !== "number" ||
+        !isValidCoordinate(latitude, longitude)
       ) {
         res.status(400).json({ error: "Missing or invalid fields: latitude, longitude" });
         return;
@@ -52,7 +64,13 @@ export const createNodesRouter = (store: IncidentStore, _bus: EventBus): Router 
 
       const existing = store.getUserNode(req.user!.id);
       if (existing) {
-        res.status(201).json({ node: existing });
+        const updated = store.updateHelpNodeLocation(existing.id, latitude, longitude);
+        if (!updated) {
+          res.status(500).json({ error: "Failed to update node location" });
+          return;
+        }
+
+        res.json({ node: updated });
         return;
       }
 

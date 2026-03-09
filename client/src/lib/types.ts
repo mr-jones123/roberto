@@ -194,6 +194,7 @@ export type EvacCenter = {
   latitude: number
   longitude: number
   distance_km: number
+  eta_minutes?: number | null
   phone: string | null
   landline: string | null
 }
@@ -256,4 +257,14 @@ export type ActiveFilter = "coverage" | "hazard" | "projects" | "incidents" | "e
 export type PendingConnection = {
   from: [number, number] // [lng, lat]
   to: [number, number]   // [lng, lat]
+}
+
+export type AddressSearchResult = {
+  id: string
+  name: string
+  place_name: string
+  latitude: number
+  longitude: number
+  place_type: string[]
+  relevance: number | null
 }

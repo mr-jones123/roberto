@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roberto — Metro Manila Flood Coverage</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+@font-face {
+  font-family: 'Zodiak';
+  src: url('fonts/Zodiak-Variable.woff2') format('woff2'),
+       url('fonts/Zodiak-Variable.woff') format('woff');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #050508;
+  --text: #E0E0E0;
+  --blue: #4FC3F7;
+  --gold: #FFD54F;
+  --green: #A5D6A7;
+  --red: #ef4444;
+  --pink: #F48FB1;
+  --purple: #CE93D8;
+  --muted: #78909C;
+  --muted2: #546E7A;
+  --orange: #FFAB91;
+  --emerald: #10b981;
+  --font-heading: 'Press Start 2P', monospace;
+  --font-body: 'Zodiak', Georgia, serif;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+/* ── Canvas layers ── */
+canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+#rain-canvas { z-index: 1; }
+
+/* ── Scene system ── */
+.scene {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  z-index: 2;
+  pointer-events: none;
+  will-change: clip-path, transform, opacity;
+}
+
+/* ── Scene 1: Opening ── */
+#scene-opening { z-index: 10; }
+.logo-row {
+  display: flex; gap: 0; perspective: 1000px;
+  overflow: visible;
+}
+.letter {
+  font-family: var(--font-heading);
+  font-size: clamp(48px, 8vw, 110px);
+  color: var(--blue);
+  display: inline-block;
+  will-change: transform, opacity, filter;
+  text-shadow: 0 0 40px rgba(79,195,247,0.3);
+  position: relative;
+}
+.letter-ghost {
+  position: absolute; inset: 0;
+  font-family: var(--font-heading);
+  font-size: inherit;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.letter-ghost.red { color: var(--red); }
+.letter-ghost.green { color: var(--green); }
+#opening-rule {
+  width: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  margin: 24px auto;
+}
+#opening-subtitle {
+  font-family: var(--font-body); font-weight: 300;
+  font-size: clamp(13px, 1.5vw, 20px);
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted); opacity: 0;
+}
+.scanline {
+  position: fixed; left: 0; right: 0;
+  height: 2px; background: var(--blue);
+  opacity: 0; z-index: 99;
+  box-shadow: 0 0 20px var(--blue), 0 0 60px rgba(79,195,247,0.3);
+}
+
+/* ── Scene 2: Data Network ── */
+#scene-data { clip-path: circle(0% at 50% 50%); }
+.scene-label {
+  position: absolute; top: 7vh; left: 5vw;
+  z-index: 5;
+}
+.scene-label .accent-bar {
+  display: block; width: 0; height: 2px;
+  margin-bottom: 10px;
+}
+.scene-label .label-text {
+  font-family: var(--font-heading); font-size: clamp(8px, 1vw, 11px);
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted); opacity: 0;
+}
+.data-counter {
+  position: absolute; bottom: 7vh; right: 5vw;
+  text-align: right; z-index: 5;
+}
+.data-counter .num {
+  font-family: var(--font-heading);
+  font-size: clamp(20px, 3vw, 40px);
+  color: var(--blue); opacity: 0;
+}
+.data-counter .counter-label {
+  font-family: var(--font-body); font-weight: 500;
+  font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted2); margin-top: 4px; opacity: 0;
+}
+#data-map { max-width: 55vw; max-height: 70vh; }
+
+/* ── Scene 3: Coverage ── */
+#scene-coverage {
+  clip-path: polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%);
+}
+.cov-header {
+  font-family: var(--font-heading);
+  font-size: clamp(8px, 1vw, 11px);
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 28px;
+  opacity: 0;
+}
+.gauge-wrap {
+  position: relative;
+  width: clamp(200px, 26vw, 340px); height: clamp(200px, 26vw, 340px);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+}
+.gauge-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gauge-value {
+  font-family: var(--font-heading);
+  font-size: clamp(28px, 4vw, 52px);
+  color: var(--blue); z-index: 2;
+}
+.gauge-label {
+  font-family: var(--font-body); font-weight: 300;
+  font-size: clamp(12px, 1.4vw, 17px);
+  color: var(--muted2); z-index: 2; margin-top: 4px;
+  font-style: italic; letter-spacing: 2px;
+}
+.city-cards { display: flex; gap: clamp(8px, 1.2vw, 16px); margin-top: 36px; flex-wrap: wrap; justify-content: center; }
+.city-card {
+  background: rgba(79,195,247,0.04); border: 1px solid rgba(79,195,247,0.1);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  transform: scale(0) rotate(10deg);
+  will-change: transform, opacity;
+}
+.city-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.city-name {
+  font-family: var(--font-body); font-weight: 400;
+  font-size: 13px; color: var(--muted); letter-spacing: 1px;
+}
+.city-score {
+  font-family: var(--font-heading); font-size: 12px;
+  margin-left: auto; letter-spacing: -0.5px;
+}
+
+/* ── Scene 4: Incidents ── */
+#scene-incidents {
+  flex-direction: row; gap: 5vw; padding: 0 5vw;
+  transform: translateX(100vw);
+}
+.map-side { flex: 1; max-width: 48vw; position: relative; }
+.map-side svg { width: 100%; max-height: 65vh; }
+.pipeline-side { display: flex; flex-direction: column; gap: 0; align-items: flex-start; justify-content: center; }
+.pipeline-stage {
+  display: flex; align-items: center; gap: 14px;
+  transform: translateX(80px); opacity: 0;
+}
+.p-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  flex-shrink: 0; position: relative;
+}
+.p-dot::after {
+  content: ''; position: absolute;
+  inset: -4px; border-radius: 50%;
+  border: 1.5px solid currentColor; opacity: 0.3;
+}
+.p-name {
+  font-family: var(--font-heading);
+  font-size: clamp(9px, 1.1vw, 13px); letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted);
+}
+.p-arrow {
+  width: 1.5px; height: 24px;
+  background: var(--muted2); margin-left: 5px;
+  opacity: 0; transform: scaleY(0); transform-origin: top;
+}
+
+/* ── Scene 5: Metrics ── */
+#scene-metrics { transform: scale(0.3) rotate(8deg); opacity: 0; }
+.metrics-header {
+  font-family: var(--font-heading);
+  font-size: clamp(8px, 1vw, 11px);
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 40px; opacity: 0;
+}
+.metrics-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: clamp(14px, 2vw, 28px);
+}
+.metric-card {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; padding: clamp(20px, 2.5vw, 36px);
+  min-width: clamp(150px, 17vw, 240px);
+  position: relative; overflow: hidden;
+  transform: translateY(40px); opacity: 0;
+}
+.metric-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  transform: scaleX(0); transform-origin: left;
+}
+.metric-num {
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 3.5vw, 48px);
+  line-height: 1;
+}
+.metric-label {
+  font-family: var(--font-body); font-weight: 400;
+  font-size: clamp(11px, 1.1vw, 14px); letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted2); margin-top: 10px;
+}
+
+/* ── Scene 6: Tagline ── */
+#scene-tagline { opacity: 0; }
+.tag-glow {
+  position: absolute;
+  width: clamp(300px, 40vw, 500px); height: clamp(300px, 40vw, 500px);
+  background: radial-gradient(circle, rgba(79,195,247,0.06) 0%, transparent 70%);
+  border-radius: 50%; opacity: 0;
+}
+.tag-logo {
+  font-family: var(--font-heading);
+  font-size: clamp(28px, 3.5vw, 48px);
+  color: var(--blue);
+  text-shadow: 0 0 30px rgba(79,195,247,0.3);
+  opacity: 0;
+}
+.tag-mission {
+  font-family: var(--font-body); font-weight: 300;
+  font-size: clamp(16px, 2vw, 26px);
+  color: var(--muted); max-width: 640px;
+  text-align: center; line-height: 1.6;
+  margin-top: 20px; opacity: 0;
+  font-style: italic;
+}
+.tag-pillars {
+  font-family: var(--font-heading);
+  font-size: clamp(7px, 0.85vw, 10px);
+  color: var(--gold); letter-spacing: 2px;
+  margin-top: 20px; opacity: 0;
+}
+
+/* ── SVG incident markers ── */
+.inc-ring {
+  transform-origin: center; transform-box: fill-box;
+}
+</style>
+</head>
+<body>
+
+<!-- Background layers -->
+<canvas id="particles"></canvas>
+<canvas id="rain-canvas"></canvas>
+
+<!-- Scene 1: Opening — Glitch Reveal -->
+<div id="scene-opening" class="scene">
+  <div class="scanline" id="scanline-1"></div>
+  <div class="scanline" id="scanline-2"></div>
+  <div class="logo-row" id="logo-row"></div>
+  <div id="opening-rule"></div>
+  <div id="opening-subtitle">Disaster Response Network for Metro Manila</div>
+</div>
+
+<!-- Scene 2: Data Layer — Circle Wipe In -->
+<div id="scene-data" class="scene">
+  <div class="scene-label" id="data-label">
+    <span class="accent-bar" id="data-accent" style="background:var(--green)"></span>
+    <span class="label-text">Flood Data Network</span>
+  </div>
+  <svg id="data-map" viewBox="0 0 500 700" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="data-counter">
+    <div class="num" id="data-num">0</div>
+    <div class="counter-label" id="data-clabel">Infrastructure Projects</div>
+  </div>
+</div>
+
+<!-- Scene 3: Coverage — Diamond Expand -->
+<div id="scene-coverage" class="scene">
+  <div class="cov-header" id="cov-header">Effective Coverage Score</div>
+  <div class="gauge-wrap">
+    <svg viewBox="0 0 200 200" id="gauge-svg">
+      <circle cx="100" cy="100" r="86" fill="none" stroke="rgba(79,195,247,0.08)" stroke-width="5" />
+      <circle id="gauge-bg" cx="100" cy="100" r="86" fill="none" stroke="rgba(79,195,247,0.15)" stroke-width="5"
+        stroke-dasharray="540.4" stroke-dashoffset="540.4" stroke-linecap="round" transform="rotate(-90 100 100)" />
+      <circle id="gauge-arc" cx="100" cy="100" r="86" fill="none" stroke="var(--blue)" stroke-width="5"
+        stroke-dasharray="540.4" stroke-dashoffset="540.4" stroke-linecap="round" transform="rotate(-90 100 100)" />
+    </svg>
+    <div class="gauge-value" id="gauge-value">0%</div>
+    <div class="gauge-label">coverage</div>
+  </div>
+  <div class="city-cards" id="city-cards"></div>
+</div>
+
+<!-- Scene 4: Incidents — Slide In -->
+<div id="scene-incidents" class="scene">
+  <div class="scene-label" id="inc-label">
+    <span class="accent-bar" id="inc-accent" style="background:var(--red)"></span>
+    <span class="label-text">Incident Command</span>
+  </div>
+  <div class="map-side">
+    <svg id="inc-map" viewBox="0 0 500 700" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div class="pipeline-side" id="pipeline"></div>
+</div>
+
+<!-- Scene 5: Metrics — Spin In -->
+<div id="scene-metrics" class="scene">
+  <div class="metrics-header" id="met-header">By The Numbers</div>
+  <div class="metrics-grid" id="met-grid"></div>
+</div>
+
+<!-- Scene 6: Tagline — Fade + Glow -->
+<div id="scene-tagline" class="scene">
+  <div class="tag-glow" id="tag-glow"></div>
+  <div class="tag-logo" id="tag-logo">ROBERTO</div>
+  <div class="tag-mission" id="tag-mission">Help communities understand flood behavior, coordinate faster, and reduce harm.</div>
+  <div class="tag-pillars" id="tag-pillars">Flood Data &middot; Coverage Analysis &middot; Emergency Response</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  PARTICLES + RAIN
+// ═══════════════════════════════════════
+(function() {
+  const pc = document.getElementById('particles');
+  const pctx = pc.getContext('2d');
+  const rc = document.getElementById('rain-canvas');
+  const rctx = rc.getContext('2d');
+  let W, H;
+  const dots = [], drops = [];
+
+  function resize() {
+    W = pc.width = rc.width = window.innerWidth;
+    H = pc.height = rc.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Particles
+  for (let i = 0; i < 70; i++) {
+    dots.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: 0.8 + Math.random() * 1.8,
+      a: 0.03 + Math.random() * 0.08,
+      vy: -(0.08 + Math.random() * 0.2),
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  // Rain drops
+  for (let i = 0; i < 120; i++) {
+    drops.push({
+      x: Math.random() * W, y: Math.random() * H,
+      len: 8 + Math.random() * 18,
+      speed: 3 + Math.random() * 5,
+      a: 0.04 + Math.random() * 0.12
+    });
+  }
+
+  function draw() {
+    pctx.clearRect(0, 0, W, H);
+    rctx.clearRect(0, 0, W, H);
+    const t = Date.now() * 0.001;
+
+    // Particles
+    for (const d of dots) {
+      d.y += d.vy;
+      d.x += Math.sin(t + d.phase) * 0.06;
+      if (d.y < -10) { d.y = H + 10; d.x = Math.random() * W; }
+      pctx.beginPath();
+      pctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      pctx.fillStyle = `rgba(79,195,247,${d.a})`;
+      pctx.fill();
+    }
+
+    // Rain
+    for (const r of drops) {
+      r.y += r.speed;
+      if (r.y > H + 20) { r.y = -r.len; r.x = Math.random() * W; }
+      rctx.beginPath();
+      rctx.moveTo(r.x, r.y);
+      rctx.lineTo(r.x - 0.3, r.y - r.len);
+      rctx.strokeStyle = `rgba(79,195,247,${r.a})`;
+      rctx.lineWidth = 0.8;
+      rctx.stroke();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ═══════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════
+const CITIES = [
+  { name: 'Marikina', score: 89, color: '#10b981' },
+  { name: 'Taguig', score: 81, color: '#22c55e' },
+  { name: 'Pasig', score: 72, color: '#22c55e' },
+  { name: 'Quezon City', score: 58, color: '#eab308' },
+  { name: 'Manila', score: 44, color: '#f97316' },
+  { name: 'Malabon', score: 23, color: '#ef4444' }
+];
+
+const STATUSES = [
+  { name: 'Ping', color: '#ef4444' },
+  { name: 'Verified', color: '#4FC3F7' },
+  { name: 'Prioritized', color: '#FFD54F' },
+  { name: 'Assigned', color: '#CE93D8' },
+  { name: 'Resolved', color: '#A5D6A7' }
+];
+
+const METRICS = [
+  { num: 3431, label: 'Projects Tracked', color: '#4FC3F7', fmt: v => v.toLocaleString() },
+  { num: 17, label: 'Cities Covered', color: '#A5D6A7', fmt: v => v.toString() },
+  { num: 5, label: 'Response Stages', color: '#CE93D8', fmt: v => v.toString() },
+  { num: 0, label: 'Live Monitoring', color: '#FFD54F', fmt: () => '24/7', text: '24/7' }
+];
+
+function scoreColor(s) {
+  if (s < 30) return '#ef4444';
+  if (s < 50) return '#f97316';
+  if (s < 70) return '#eab308';
+  if (s < 85) return '#22c55e';
+  return '#10b981';
+}
+
+// ═══════════════════════════════════════
+//  BUILD DOM
+// ═══════════════════════════════════════
+
+// -- Logo letters with glitch ghost layers --
+const logoRow = document.getElementById('logo-row');
+'ROBERTO'.split('').forEach(ch => {
+  const span = document.createElement('span');
+  span.className = 'letter';
+  span.textContent = ch;
+  // Glitch ghosts
+  const ghostR = document.createElement('span');
+  ghostR.className = 'letter-ghost red';
+  ghostR.textContent = ch;
+  const ghostG = document.createElement('span');
+  ghostG.className = 'letter-ghost green';
+  ghostG.textContent = ch;
+  span.appendChild(ghostR);
+  span.appendChild(ghostG);
+  logoRow.appendChild(span);
+});
+
+// -- Metro Manila map paths (abstract geometric) --
+const MAP_PATHS = [
+  'M 200,80 L 280,70 L 310,120 L 290,160 L 220,150 Z',
+  'M 180,30 L 260,20 L 280,70 L 200,80 Z',
+  'M 140,60 L 180,30 L 200,80 L 160,100 Z',
+  'M 160,100 L 200,80 L 220,150 L 170,140 Z',
+  'M 220,150 L 290,160 L 340,180 L 360,280 L 300,310 L 240,280 L 230,200 Z',
+  'M 230,200 L 240,280 L 200,290 L 190,230 Z',
+  'M 140,180 L 190,160 L 190,230 L 200,290 L 170,320 L 120,300 L 110,220 Z',
+  'M 240,280 L 300,310 L 290,350 L 230,330 Z',
+  'M 300,310 L 360,280 L 380,370 L 320,390 L 290,350 Z',
+  'M 360,280 L 420,260 L 440,360 L 380,370 Z',
+  'M 200,290 L 230,330 L 250,400 L 200,410 L 170,370 L 170,320 Z',
+  'M 120,300 L 170,320 L 170,370 L 150,420 L 110,400 Z',
+  'M 250,400 L 290,350 L 320,390 L 360,430 L 320,520 L 260,480 Z',
+  'M 290,350 L 320,390 L 300,400 L 280,380 Z',
+  'M 110,400 L 150,420 L 170,470 L 200,520 L 140,540 L 90,480 Z',
+  'M 90,480 L 140,540 L 130,590 L 70,560 Z',
+  'M 140,540 L 200,520 L 260,580 L 230,640 L 150,630 L 130,590 Z'
+];
+
+function buildMap(svgEl, addEffects) {
+  svgEl.innerHTML = '';
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  MAP_PATHS.forEach(d => {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'rgba(79,195,247,0.03)');
+    path.setAttribute('stroke', 'rgba(79,195,247,0.15)');
+    path.setAttribute('stroke-width', '1.2');
+    path.classList.add('mpath');
+    g.appendChild(path);
+  });
+  svgEl.appendChild(g);
+
+  if (addEffects) {
+    // Data points
+    const dpG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const pts = [];
+    const colors = ['#4FC3F7','#A5D6A7','#FFD54F','#CE93D8','#F48FB1'];
+    for (let i = 0; i < 55; i++) {
+      const x = 90 + Math.random() * 360;
+      const y = 30 + Math.random() * 610;
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', x); c.setAttribute('cy', y);
+      c.setAttribute('r', 1.5 + Math.random() * 2);
+      c.setAttribute('fill', colors[Math.floor(Math.random() * colors.length)]);
+      c.setAttribute('opacity', '0');
+      dpG.appendChild(c);
+      pts.push(c);
+    }
+    svgEl.appendChild(dpG);
+
+    // Connection lines
+    const lnG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const lns = [];
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const x1 = +pts[i].getAttribute('cx'), y1 = +pts[i].getAttribute('cy');
+        const x2 = +pts[j].getAttribute('cx'), y2 = +pts[j].getAttribute('cy');
+        const d = Math.hypot(x2-x1, y2-y1);
+        if (d < 65 && lns.length < 45) {
+          const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
+          ln.setAttribute('x2', x2); ln.setAttribute('y2', y2);
+          ln.setAttribute('stroke', 'rgba(79,195,247,0.15)');
+          ln.setAttribute('stroke-width', '0.6');
+          ln.setAttribute('stroke-dasharray', d.toFixed(1));
+          ln.setAttribute('stroke-dashoffset', d.toFixed(1));
+          lnG.appendChild(ln);
+          lns.push(ln);
+        }
+      }
+    }
+    svgEl.insertBefore(lnG, dpG);
+    return { points: pts, lines: lns };
+  }
+  return null;
+}
+
+// Scene 2: map with data
+const dataEffects = buildMap(document.getElementById('data-map'), true);
+// Setup stroke dash for map paths
+document.querySelectorAll('#data-map .mpath').forEach(p => {
+  try { const l = p.getTotalLength(); p.style.strokeDasharray = l; p.style.strokeDashoffset = l; } catch(e) {}
+});
+
+// Scene 3: city cards
+const cityCardsEl = document.getElementById('city-cards');
+CITIES.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'city-card';
+  card.innerHTML = `
+    <div class="city-dot" style="background:${c.color}"></div>
+    <span class="city-name">${c.name}</span>
+    <span class="city-score" style="color:${c.color}" data-target="${c.score}">0%</span>
+  `;
+  cityCardsEl.appendChild(card);
+});
+
+// Scene 4: incident map + pipeline
+buildMap(document.getElementById('inc-map'), false);
+document.querySelectorAll('#inc-map .mpath').forEach(p => {
+  p.setAttribute('fill', 'rgba(239,68,68,0.03)');
+  p.setAttribute('stroke', 'rgba(239,68,68,0.12)');
+});
+
+// Incident markers on the map
+const incSvg = document.getElementById('inc-map');
+const incMarkers = [
+  {x:180,y:250,s:0},{x:300,y:180,s:0},{x:250,y:350,s:0},
+  {x:350,y:300,s:1},{x:160,y:130,s:1},
+  {x:270,y:440,s:2},{x:200,y:180,s:2},
+  {x:380,y:350,s:3},
+  {x:230,y:530,s:4},{x:300,y:500,s:4}
+];
+const incG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+incMarkers.forEach(m => {
+  // Pulse ring
+  if (m.s < 4) {
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    ring.setAttribute('cx', m.x); ring.setAttribute('cy', m.y);
+    ring.setAttribute('r', '8'); ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', STATUSES[m.s].color);
+    ring.setAttribute('stroke-width', '1.2');
+    ring.setAttribute('opacity', '0');
+    ring.classList.add('inc-ring');
+    incG.appendChild(ring);
+    m.ring = ring;
+  }
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  dot.setAttribute('cx', m.x); dot.setAttribute('cy', m.y);
+  dot.setAttribute('r', '4.5');
+  dot.setAttribute('fill', STATUSES[m.s].color);
+  dot.setAttribute('opacity', '0');
+  incG.appendChild(dot);
+  m.dot = dot;
+});
+incSvg.appendChild(incG);
+
+// Pipeline
+const pipeEl = document.getElementById('pipeline');
+STATUSES.forEach((s, i) => {
+  const stg = document.createElement('div');
+  stg.className = 'pipeline-stage';
+  stg.innerHTML = `<div class="p-dot" style="background:${s.color};color:${s.color}"></div><span class="p-name">${s.name}</span>`;
+  pipeEl.appendChild(stg);
+  if (i < STATUSES.length - 1) {
+    const arr = document.createElement('div');
+    arr.className = 'p-arrow';
+    pipeEl.appendChild(arr);
+  }
+});
+
+// Scene 5: metrics
+const metGrid = document.getElementById('met-grid');
+METRICS.forEach(m => {
+  const card = document.createElement('div');
+  card.className = 'metric-card';
+  card.innerHTML = `
+    <div class="metric-accent" style="background:${m.color}"></div>
+    <div class="metric-num" style="color:${m.color}" data-target="${m.num}" ${m.text ? `data-text="${m.text}"` : ''}>${m.text || '0'}</div>
+    <div class="metric-label">${m.label}</div>
+  `;
+  metGrid.appendChild(card);
+});
+
+// ═══════════════════════════════════════
+//  GSAP TIMELINE
+// ═══════════════════════════════════════
+gsap.defaults({ ease: 'power3.out' });
+
+const main = gsap.timeline({ repeat: -1, repeatDelay: 1, delay: 0.3 });
+const letters = document.querySelectorAll('.letter');
+const ghostsR = document.querySelectorAll('.letter-ghost.red');
+const ghostsG = document.querySelectorAll('.letter-ghost.green');
+
+// ── SCENE 1: GLITCH LOGO REVEAL (0 – 4.5s) ──
+main.addLabel('open', 0);
+
+// Scanlines sweep
+main.fromTo('#scanline-1', { top: '-2px', opacity: 0 }, { top: '52%', opacity: 0.8, duration: 0.3, ease: 'power1.in' }, 'open')
+    .to('#scanline-1', { top: '105%', opacity: 0, duration: 0.3, ease: 'power1.out' }, 'open+=0.3')
+    .fromTo('#scanline-2', { top: '-2px', opacity: 0 }, { top: '48%', opacity: 0.6, duration: 0.25, ease: 'power1.in' }, 'open+=0.15')
+    .to('#scanline-2', { top: '105%', opacity: 0, duration: 0.25, ease: 'power1.out' }, 'open+=0.4');
+
+// Letters slam in from scattered positions with glitch
+main.set(letters, { opacity: 0, y: () => gsap.utils.random(-120, 120), x: () => gsap.utils.random(-60, 60), rotationZ: () => gsap.utils.random(-25, 25), scale: 0.3 }, 'open')
+    .to(letters, {
+      opacity: 1, y: 0, x: 0, rotationZ: 0, scale: 1,
+      duration: 0.5, stagger: { each: 0.06, from: 'center' },
+      ease: 'back.out(1.7)'
+    }, 'open+=0.25');
+
+// Glitch ghosts flicker
+main.fromTo(ghostsR, { opacity: 0, x: -3 }, { opacity: 0.7, x: 3, duration: 0.08, stagger: 0.02 }, 'open+=0.7')
+    .to(ghostsR, { opacity: 0, duration: 0.06 }, 'open+=0.82')
+    .fromTo(ghostsG, { opacity: 0, x: 2 }, { opacity: 0.5, x: -2, duration: 0.06, stagger: 0.02 }, 'open+=0.76')
+    .to(ghostsG, { opacity: 0, duration: 0.06 }, 'open+=0.86')
+    // Second glitch pass
+    .fromTo(ghostsR, { opacity: 0, x: 4, y: -2 }, { opacity: 0.5, x: -2, y: 1, duration: 0.05, stagger: 0.015 }, 'open+=1.1')
+    .to(ghostsR, { opacity: 0, duration: 0.05 }, 'open+=1.18')
+    .fromTo(ghostsG, { opacity: 0, x: -3, y: 2 }, { opacity: 0.4, x: 2, y: -1, duration: 0.05, stagger: 0.015 }, 'open+=1.14')
+    .to(ghostsG, { opacity: 0, duration: 0.05 }, 'open+=1.22');
+
+// Rule draws
+main.to('#opening-rule', { width: 'clamp(100px, 18vw, 260px)', duration: 0.7, ease: 'power2.inOut' }, 'open+=1');
+
+// Subtitle types in
+main.to('#opening-subtitle', { opacity: 1, duration: 0.5 }, 'open+=1.5');
+
+// EXIT: Letters scatter outward + scale up and vanish
+main.to(letters, {
+  x: () => gsap.utils.random(-200, 200),
+  y: () => gsap.utils.random(-150, 150),
+  rotationZ: () => gsap.utils.random(-30, 30),
+  scale: 1.5, opacity: 0,
+  duration: 0.6, stagger: { each: 0.03, from: 'center' },
+  ease: 'power2.in'
+}, 'open+=3.5');
+main.to(['#opening-rule', '#opening-subtitle'], { opacity: 0, duration: 0.3 }, 'open+=3.6');
+
+
+// ── SCENE 2: DATA NETWORK — CIRCLE WIPE (4 – 9s) ──
+main.addLabel('data', 4.2);
+
+// Circle clip-path expands from center
+main.to('#scene-data', {
+  clipPath: 'circle(75% at 50% 50%)',
+  duration: 1, ease: 'power2.inOut'
+}, 'data');
+
+// Label + accent bar
+main.to('#data-accent', { width: 24, duration: 0.4 }, 'data+=0.5')
+    .to('#data-label .label-text', { opacity: 1, duration: 0.3 }, 'data+=0.6');
+
+// Map paths draw in
+main.to('#data-map .mpath', {
+  strokeDashoffset: 0,
+  stroke: 'rgba(79,195,247,0.25)',
+  fill: 'rgba(79,195,247,0.05)',
+  duration: 0.8, stagger: 0.03, ease: 'power2.inOut'
+}, 'data+=0.4');
+
+// Data points burst in from their positions
+main.to(dataEffects.points, {
+  attr: { opacity: 0.85 },
+  duration: 0.15, stagger: { each: 0.015, from: 'random' }
+}, 'data+=1.2');
+
+// Lines draw
+main.to(dataEffects.lines, {
+  attr: { 'stroke-dashoffset': 0 },
+  duration: 0.5, stagger: 0.01, ease: 'power2.inOut'
+}, 'data+=1.6');
+
+// Counter
+const cObj = { v: 0 };
+main.to('.data-counter .num', { opacity: 1, duration: 0.3 }, 'data+=2')
+    .to('.data-counter .counter-label', { opacity: 1, duration: 0.3 }, 'data+=2.1')
+    .to(cObj, {
+      v: 3431, duration: 1.8, ease: 'power2.out',
+      snap: { v: 1 },
+      onUpdate: () => { document.getElementById('data-num').textContent = cObj.v.toLocaleString(); }
+    }, 'data+=2');
+
+// EXIT: Circle wipe shrinks to 0 at a different position (bottom-right)
+main.to('#scene-data', {
+  clipPath: 'circle(0% at 85% 85%)',
+  duration: 0.7, ease: 'power3.in'
+}, 'data+=4.3');
+
+
+// ── SCENE 3: COVERAGE — DIAMOND EXPAND (8.8 – 14.5s) ──
+main.addLabel('cov', 9);
+
+// Diamond clip-path grows
+main.to('#scene-coverage', {
+  clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+  duration: 0.8, ease: 'power2.out'
+}, 'cov')
+.to('#scene-coverage', {
+  clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+  duration: 0.5, ease: 'power2.inOut'
+}, 'cov+=0.8');
+
+main.to('#cov-header', { opacity: 1, duration: 0.4 }, 'cov+=0.6');
+
+// Gauge track
+const circ = 2 * Math.PI * 86;
+main.to('#gauge-bg', { attr: { 'stroke-dashoffset': 0 }, duration: 0.8, ease: 'power2.out' }, 'cov+=0.8');
+
+// Gauge arc fills with color change
+const gObj = { pct: 0 };
+const gaugeArc = document.getElementById('gauge-arc');
+main.to(gObj, {
+  pct: 67.2, duration: 2.2, ease: 'power2.out',
+  onUpdate: () => {
+    const off = circ - (circ * gObj.pct / 100);
+    gaugeArc.setAttribute('stroke-dashoffset', off);
+    gaugeArc.setAttribute('stroke', scoreColor(gObj.pct));
+    document.getElementById('gauge-value').textContent = gObj.pct.toFixed(1) + '%';
+    document.getElementById('gauge-value').style.color = scoreColor(gObj.pct);
+  }
+}, 'cov+=1.2');
+
+// City cards pop in with springy scale
+main.to('.city-card', {
+  scale: 1, rotation: 0,
+  duration: 0.5, stagger: { each: 0.08, from: 'random' },
+  ease: 'elastic.out(1, 0.6)'
+}, 'cov+=1.8');
+
+// Count city scores
+document.querySelectorAll('.city-score').forEach(el => {
+  const t = parseInt(el.dataset.target);
+  const o = { v: 0 };
+  main.to(o, {
+    v: t, duration: 1, snap: { v: 1 },
+    onUpdate: () => { el.textContent = Math.round(o.v) + '%'; }
+  }, 'cov+=2');
+});
+
+// EXIT: Diagonal wipe (clip-path slides to top-left)
+main.to('#scene-coverage', {
+  clipPath: 'polygon(-20% -20%, -20% -20%, -20% -20%, -20% -20%)',
+  duration: 0.7, ease: 'power3.in'
+}, 'cov+=4.8');
+
+
+// ── SCENE 4: INCIDENTS — SLIDE FROM RIGHT (14 – 19.5s) ──
+main.addLabel('inc', 14);
+
+// Entire scene slides in from right
+main.to('#scene-incidents', {
+  x: 0, duration: 0.8, ease: 'power3.out'
+}, 'inc');
+
+main.to('#inc-accent', { width: 24, duration: 0.4 }, 'inc+=0.4')
+    .to('#inc-label .label-text', { opacity: 1, duration: 0.3 }, 'inc+=0.5');
+
+// Map regions flash in
+main.fromTo('#inc-map .mpath', { opacity: 0 }, {
+  opacity: 1, duration: 0.08,
+  stagger: { each: 0.04, from: 'random' }
+}, 'inc+=0.5');
+
+// Incident dots slam in with overshoot
+incMarkers.forEach((m, i) => {
+  main.fromTo(m.dot,
+    { attr: { r: 0, opacity: 0 } },
+    { attr: { r: 4.5, opacity: 1 }, duration: 0.25, ease: 'back.out(3)' },
+    `inc+=${0.8 + i * 0.07}`
+  );
+});
+
+// Pulse rings
+incMarkers.forEach(m => {
+  if (m.ring) {
+    gsap.to(m.ring, {
+      attr: { r: 20, opacity: 0 },
+      duration: 1.8, repeat: -1, ease: 'power2.out',
+      delay: 2 + Math.random() * 1.5
+    });
+    gsap.set(m.ring, { attr: { opacity: 0.5, r: 8 } });
+  }
+});
+
+// Pipeline stages cascade in
+const stages = document.querySelectorAll('.pipeline-stage');
+const arrows = document.querySelectorAll('.p-arrow');
+stages.forEach((s, i) => {
+  main.to(s, {
+    x: 0, opacity: 1, duration: 0.4, ease: 'back.out(2)'
+  }, `inc+=${1.3 + i * 0.35}`);
+  if (i < arrows.length) {
+    main.to(arrows[i], { opacity: 0.5, scaleY: 1, duration: 0.25 }, `inc+=${1.5 + i * 0.35}`);
+  }
+});
+
+// EXIT: Slide out to the left
+main.to('#scene-incidents', {
+  x: '-100vw', duration: 0.7, ease: 'power3.in'
+}, 'inc+=4.8');
+
+
+// ── SCENE 5: METRICS — SPIN + SCALE IN (19 – 23.5s) ──
+main.addLabel('met', 19.2);
+
+main.to('#scene-metrics', {
+  scale: 1, rotation: 0, opacity: 1,
+  duration: 0.8, ease: 'back.out(1.4)'
+}, 'met');
+
+main.to('#met-header', { opacity: 1, duration: 0.4 }, 'met+=0.5');
+
+// Cards stagger in with upward slide
+document.querySelectorAll('.metric-card').forEach((card, i) => {
+  main.to(card, {
+    y: 0, opacity: 1,
+    duration: 0.5, ease: 'power3.out'
+  }, `met+=${0.6 + i * 0.12}`);
+
+  main.to(card.querySelector('.metric-accent'), {
+    scaleX: 1, duration: 0.4, ease: 'power2.out'
+  }, `met+=${0.8 + i * 0.12}`);
+
+  const numEl = card.querySelector('.metric-num');
+  const target = parseInt(numEl.dataset.target);
+  const isText = numEl.dataset.text;
+
+  if (!isText) {
+    const o = { v: 0 };
+    main.to(o, {
+      v: target, duration: 1.5, ease: 'power2.out',
+      snap: { v: 1 },
+      onUpdate: () => { numEl.textContent = METRICS[i].fmt(o.v); }
+    }, `met+=${0.8 + i * 0.12}`);
+  }
+});
+
+// EXIT: Scale down + spin away
+main.to('#scene-metrics', {
+  scale: 0.2, rotation: -10, opacity: 0,
+  duration: 0.6, ease: 'power3.in'
+}, 'met+=3.6');
+
+
+// ── SCENE 6: TAGLINE — SOFT EMERGE (23 – 27s) ──
+main.addLabel('tag', 23.2);
+
+main.to('#scene-tagline', { opacity: 1, duration: 0.6 }, 'tag');
+main.to('#tag-glow', { opacity: 1, scale: 1.2, duration: 2, ease: 'power1.out' }, 'tag');
+main.fromTo('#tag-logo', { y: 20, opacity: 0 }, {
+  y: 0, opacity: 1, duration: 0.7, ease: 'power2.out'
+}, 'tag+=0.3');
+main.fromTo('#tag-mission', { y: 15, opacity: 0 }, {
+  y: 0, opacity: 1, duration: 0.6
+}, 'tag+=0.7');
+main.fromTo('#tag-pillars', { y: 10, opacity: 0, letterSpacing: '10px' }, {
+  y: 0, opacity: 1, letterSpacing: '2px', duration: 0.6
+}, 'tag+=1.1');
+
+// EXIT: Everything fades to black
+main.to('#scene-tagline', { opacity: 0, duration: 1, ease: 'power2.in' }, 'tag+=3.5');
+
+
+// ═══════════════════════════════════════
+//  RESET for seamless loop
+// ═══════════════════════════════════════
+main.call(() => {
+  // Scene 1
+  gsap.set(letters, { opacity: 0, y: 0, x: 0, rotationZ: 0, scale: 1 });
+  gsap.set(ghostsR, { opacity: 0 });
+  gsap.set(ghostsG, { opacity: 0 });
+  gsap.set('#opening-rule', { width: 0 });
+  gsap.set('#opening-subtitle', { opacity: 0 });
+
+  // Scene 2
+  gsap.set('#scene-data', { clipPath: 'circle(0% at 50% 50%)' });
+  gsap.set('#data-accent', { width: 0 });
+  gsap.set('#data-label .label-text', { opacity: 0 });
+  gsap.set('.data-counter .num', { opacity: 0 });
+  gsap.set('.data-counter .counter-label', { opacity: 0 });
+  cObj.v = 0;
+  document.getElementById('data-num').textContent = '0';
+  dataEffects.points.forEach(p => p.setAttribute('opacity', '0'));
+  dataEffects.lines.forEach(l => l.setAttribute('stroke-dashoffset', l.getAttribute('stroke-dasharray')));
+  document.querySelectorAll('#data-map .mpath').forEach(p => {
+    try { p.style.strokeDashoffset = p.getTotalLength(); p.setAttribute('fill', 'rgba(79,195,247,0.03)'); p.setAttribute('stroke', 'rgba(79,195,247,0.15)'); } catch(e) {}
+  });
+
+  // Scene 3
+  gsap.set('#scene-coverage', { clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)' });
+  gsap.set('#cov-header', { opacity: 0 });
+  gsap.set('.city-card', { scale: 0, rotation: 10 });
+  gaugeArc.setAttribute('stroke-dashoffset', circ);
+  document.getElementById('gauge-bg').setAttribute('stroke-dashoffset', circ);
+  gObj.pct = 0;
+  document.getElementById('gauge-value').textContent = '0%';
+  document.querySelectorAll('.city-score').forEach(el => el.textContent = '0%');
+
+  // Scene 4
+  gsap.set('#scene-incidents', { x: '100vw' });
+  gsap.set('#inc-accent', { width: 0 });
+  gsap.set('#inc-label .label-text', { opacity: 0 });
+  gsap.set('#inc-map .mpath', { opacity: 0 });
+  incMarkers.forEach(m => {
+    m.dot.setAttribute('opacity', '0'); m.dot.setAttribute('r', '0');
+    if (m.ring) { m.ring.setAttribute('opacity', '0'); }
+  });
+  gsap.set('.pipeline-stage', { x: 80, opacity: 0 });
+  gsap.set('.p-arrow', { opacity: 0, scaleY: 0 });
+
+  // Scene 5
+  gsap.set('#scene-metrics', { scale: 0.3, rotation: 8, opacity: 0 });
+  gsap.set('#met-header', { opacity: 0 });
+  gsap.set('.metric-card', { y: 40, opacity: 0 });
+  gsap.set('.metric-accent', { scaleX: 0 });
+  document.querySelectorAll('.metric-num').forEach((el, i) => {
+    el.textContent = METRICS[i].text || '0';
+  });
+
+  // Scene 6
+  gsap.set('#scene-tagline', { opacity: 0 });
+  gsap.set('#tag-glow', { opacity: 0, scale: 1 });
+  gsap.set('#tag-logo', { y: 20, opacity: 0 });
+  gsap.set('#tag-mission', { y: 15, opacity: 0 });
+  gsap.set('#tag-pillars', { y: 10, opacity: 0, letterSpacing: '10px' });
+});
+</script>
+</body>
+</html>

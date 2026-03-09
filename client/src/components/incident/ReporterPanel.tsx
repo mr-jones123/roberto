@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react"
 import type React from "react"
-import { createIncident, fetchCurrentWeather, fetchIncidentNodeGuidance, fetchIncidents, fetchNearestEvacCenters } from "../../lib/api"
-import type { EvacCenter, FacilityType, IncidentNodeGuidanceResponse, IncidentRow, PendingConnection, WeatherCurrent } from "../../lib/types"
+import { createIncident, fetchCurrentWeather, fetchIncidentNodeGuidance, fetchIncidents, fetchNearestEvacCenters, searchAddresses } from "../../lib/api"
+import type { AddressSearchResult, EvacCenter, FacilityType, IncidentNodeGuidanceResponse, IncidentRow, PendingConnection, WeatherCurrent } from "../../lib/types"
 import { broadcastIncidentUpdate, useIncidentStream } from "../../hooks/useIncidentStream"
 import { StatusBadge } from "./StatusBadge"
 import { NodePanel } from "../chat/NodePanel"
@@ -67,6 +67,12 @@ export function ReporterPanel({
   const [myPings, setMyPings] = useState<IncidentRow[]>([])
   const [evacCache, setEvacCache] = useState<Record<string, EvacCenter[]>>({})
   const [showConnect, setShowConnect] = useState(false)
+  const [addressQuery, setAddressQuery] = useState("")
+  const [addressResults, setAddressResults] = useState<AddressSearchResult[]>([])
+  const [addressLoading, setAddressLoading] = useState(false)
+  const [addressError, setAddressError] = useState<string | null>(null)
+  const [addressSearchAttempted, setAddressSearchAttempted] = useState(false)
+  const [selectedAddress, setSelectedAddress] = useState<AddressSearchResult | null>(null)
 
   const { incidents: streamIncidents } = useIncidentStream()
 
@@ -125,6 +131,51 @@ export function ReporterPanel({
     }
   }, [showWeatherContext, currentLocation])
 
+  useEffect(() => {
+    const query = addressQuery.trim()
+
+    if (query.length < 3) {
+      setAddressResults([])
+      setAddressError(null)
+      setAddressSearchAttempted(false)
+      setAddressLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      setAddressLoading(true)
+      setAddressError(null)
+
+      searchAddresses(query, {
+        limit: 5,
+        proximity: currentLocation,
+        signal: controller.signal,
+      })
+        .then((res) => {
+          if (controller.signal.aborted) return
+          setAddressResults(res.features)
+          setAddressSearchAttempted(true)
+        })
+        .catch((err: unknown) => {
+          if (controller.signal.aborted) return
+          setAddressResults([])
+          setAddressSearchAttempted(true)
+          setAddressError(err instanceof Error ? err.message : "Failed to search addresses")
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setAddressLoading(false)
+          }
+        })
+    }, 350)
+
+    return () => {
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
+  }, [addressQuery, currentLocation])
+
   const loadEvac = (incident: IncidentRow) => {
     if (evacCache[incident.id]) return
     fetchNearestEvacCenters(incident.latitude, incident.longitude)
@@ -156,6 +207,7 @@ export function ReporterPanel({
           setLocationState("granted")
           setCurrentLocation(next)
           setLocationAccuracy(position.coords.accuracy)
+          setSelectedAddress(null)
           onUserLocationChange(next.lat, next.lng)
           onFocusPing(next.lat, next.lng)
           setLocating(false)
@@ -181,6 +233,21 @@ export function ReporterPanel({
         },
       )
     })
+  }
+
+  const handleAddressSelect = (address: AddressSearchResult) => {
+    const next = {
+      lat: address.latitude,
+      lng: address.longitude,
+    }
+
+    setCurrentLocation(next)
+    setLocationAccuracy(null)
+    setLocationState("granted")
+    setSelectedAddress(address)
+    setFormError(null)
+    onUserLocationChange(next.lat, next.lng)
+    onFocusPing(next.lat, next.lng)
   }
 
   const handleWeatherToggle = () => {
@@ -362,6 +429,9 @@ export function ReporterPanel({
                   <p className="font-mono text-[11px] text-slate-300">
                     {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
                   </p>
+                  {selectedAddress && (
+                    <p className="mt-1 text-[10px] text-cyan-300">Address: {selectedAddress.place_name}</p>
+                  )}
                   {locationAccuracy != null && (
                     <p className="text-[10px] text-slate-500">Accuracy: {Math.round(locationAccuracy)} m</p>
                   )}
@@ -376,6 +446,59 @@ export function ReporterPanel({
                   Location is blocked. Enable location permission in your browser settings.
                 </p>
               )}
+
+              <div className="mt-2 border-t border-[#334155] pt-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Search Address
+                </p>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Use an address if GPS is unavailable.
+                </p>
+                <input
+                  data-testid="report-address-search"
+                  type="text"
+                  value={addressQuery}
+                  onChange={(e) => setAddressQuery(e.target.value)}
+                  className="mt-1.5 w-full rounded-md border border-[#334155] bg-[#020617] px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-500/50"
+                  placeholder="Search street, barangay, city"
+                />
+
+                {addressLoading && (
+                  <p className="mt-1 text-[10px] text-slate-400">Searching addresses...</p>
+                )}
+
+                {addressError && (
+                  <p className="mt-1 rounded bg-red-500/10 px-2 py-1 text-[10px] text-red-300">{addressError}</p>
+                )}
+
+                {!addressLoading && !addressError && addressQuery.trim().length >= 3 && addressSearchAttempted && addressResults.length === 0 && (
+                  <p className="mt-1 text-[10px] text-slate-500">No matching addresses found.</p>
+                )}
+
+                {addressResults.length > 0 && (
+                  <div className="mt-1.5 max-h-32 space-y-1 overflow-y-auto">
+                    {addressResults.map((result) => {
+                      const isSelected = selectedAddress?.id === result.id
+                      return (
+                        <button
+                          key={result.id}
+                          data-testid="report-address-option"
+                          type="button"
+                          onClick={() => handleAddressSelect(result)}
+                          className={`w-full rounded-md border px-2 py-1.5 text-left text-[11px] transition-colors ${
+                            isSelected
+                              ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-200"
+                              : "border-[#334155] bg-[#020617] text-slate-300 hover:border-[#475569] hover:bg-[#1e293b]"
+                          }`}
+                        >
+                          <p className="truncate font-medium">{result.name}</p>
+                          <p className="mt-0.5 truncate text-[10px] text-slate-500">{result.place_name}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -425,7 +548,7 @@ export function ReporterPanel({
           <span className="font-medium">Connect</span>
           <span>{showConnect ? "\u25B2" : "\u25BC"}</span>
         </button>
-        {showConnect && <NodePanel token={token} userId={userId} onConnectionsChange={onConnectionsChange} />}
+        {showConnect && <NodePanel token={token} userId={userId} initialLocation={currentLocation} onConnectionsChange={onConnectionsChange} />}
       </div>
     </div>
   )
@@ -571,7 +694,9 @@ function PingCard({
                             <span className="truncate text-[11px] text-slate-300">{c.name}</span>
                           </div>
                           <span className="ml-2 flex-shrink-0 text-[10px] font-mono text-slate-500">
-                            {c.distance_km.toFixed(1)} km
+                            {c.eta_minutes != null
+                              ? `~${c.eta_minutes} min · ${c.distance_km.toFixed(1)} km`
+                              : `${c.distance_km.toFixed(1)} km`}
                           </span>
                         </div>
                       </button>

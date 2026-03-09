@@ -73,6 +73,25 @@ describe("Chat API", () => {
     expect(res.body.node.latitude).toBe(14.5995);
   });
 
+  it("POST /api/nodes updates existing node location for same user", async () => {
+    const first = await request(app)
+      .post("/api/nodes")
+      .set("Authorization", `Bearer ${token1}`)
+      .send({ latitude: 14.5995, longitude: 120.9842 });
+
+    expect(first.status).toBe(201);
+
+    const second = await request(app)
+      .post("/api/nodes")
+      .set("Authorization", `Bearer ${token1}`)
+      .send({ latitude: 14.6378, longitude: 121.0319 });
+
+    expect(second.status).toBe(200);
+    expect(second.body.node.id).toBe(first.body.node.id);
+    expect(second.body.node.latitude).toBe(14.6378);
+    expect(second.body.node.longitude).toBe(121.0319);
+  });
+
   it("GET /api/nodes/nearby returns nearby nodes", async () => {
     await request(app)
       .post("/api/nodes")

@@ -271,8 +271,8 @@ export const CHAT_ENDPOINTS = [
     method: HTTP_METHOD.POST,
     path: "/api/nodes",
     roles: [ACCESS_ROLE.REPORTER],
-    statusCodes: [201, 400, 401],
-    description: "Create or register a help node.",
+    statusCodes: [200, 201, 400, 401],
+    description: "Create a help node or update the caller's existing node location.",
     requestBody: {
       requiredFields: ["latitude", "longitude"]
     }

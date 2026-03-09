@@ -89,6 +89,19 @@ const parseNumericField = (value: unknown): number | null => {
   return value;
 };
 
+const resolveGeminiApiKey = (headerValue: unknown): string | null => {
+  if (typeof headerValue === "string" && headerValue.trim() !== "") {
+    return headerValue.trim();
+  }
+
+  const envKey = process.env.GEMINI_API_KEY;
+  if (typeof envKey === "string" && envKey.trim() !== "") {
+    return envKey.trim();
+  }
+
+  return null;
+};
+
 const toLngLat = (value: unknown): LngLat | null => {
   if (!Array.isArray(value) || value.length < 2) {
     return null;
@@ -160,13 +173,17 @@ const pointOnSegment = (point: LngLat, a: LngLat, b: LngLat): boolean => {
   const [ax, ay] = a;
   const [bx, by] = b;
 
+  const squaredLength = (bx - ax) ** 2 + (by - ay) ** 2;
+  if (squaredLength < epsilon) {
+    // Degenerate zero-length segment — only matches the exact point
+    return Math.abs(px - ax) < epsilon && Math.abs(py - ay) < epsilon;
+  }
+
   const cross = (py - ay) * (bx - ax) - (px - ax) * (by - ay);
   if (Math.abs(cross) > epsilon) return false;
 
   const dot = (px - ax) * (bx - ax) + (py - ay) * (by - ay);
   if (dot < -epsilon) return false;
-
-  const squaredLength = (bx - ax) ** 2 + (by - ay) ** 2;
   if (dot - squaredLength > epsilon) return false;
 
   return true;
@@ -479,11 +496,14 @@ export const createAnalysisRouter = (dataStore: DataStore): Router => {
   const router = Router();
 
   router.get("/cities/:cityId/analysis", async (req, res) => {
-    const apiKey = req.headers["x-gemini-key"];
+    const apiKey = resolveGeminiApiKey(req.headers["x-gemini-key"]);
     const audience = parseAudience(req.query.audience);
 
-    if (typeof apiKey !== "string" || apiKey.trim() === "") {
-      res.status(400).json({ analysis: null, error: "Gemini API key required. Enter your key in the UI." });
+    if (apiKey === null) {
+      res.status(400).json({
+        analysis: null,
+        error: "Gemini API key required. Provide X-Gemini-Key or set GEMINI_API_KEY on the server.",
+      });
       return;
     }
 
@@ -556,9 +576,9 @@ export const createAnalysisRouter = (dataStore: DataStore): Router => {
     };
 
     const fallbackGuidance = buildNodeFallbackGuidance(context);
-    const apiKey = req.headers["x-gemini-key"];
+    const apiKey = resolveGeminiApiKey(req.headers["x-gemini-key"]);
 
-    if (typeof apiKey !== "string" || apiKey.trim() === "") {
+    if (apiKey === null) {
       const fallbackResponse: IncidentNodeGuidanceResponse = {
         source: "fallback",
         confidence_level: "fallback",
@@ -571,13 +591,13 @@ export const createAnalysisRouter = (dataStore: DataStore): Router => {
           hazard,
           weather,
         },
-        model_error: "Gemini API key missing",
+        model_error: "Gemini API key missing (header/env)",
       };
       res.json(fallbackResponse);
       return;
     }
 
-    const aiResult = await generateIncidentNodeGuidance(context, apiKey.trim());
+    const aiResult = await generateIncidentNodeGuidance(context, apiKey);
     const confidenceScore = aiResult.confidenceScore;
     const gateTriggered =
       aiResult.whatThisMeans === null

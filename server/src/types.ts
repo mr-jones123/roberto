@@ -129,6 +129,7 @@ export type EvacCenter = {
   phone: string | null;
   landline: string | null;
   distance_km: number;
+  eta_minutes?: number | null;
 };
 
 export type EvacCenterRow = {
